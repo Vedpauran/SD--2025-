@@ -1,523 +1,602 @@
-const getDynamicPageModel = require('../../models/pages/page.modal');
+// pageController.js
+const { Page, getDynamicPageModel } = require("../../models/pages/page.modal");
 const asyncHandler = require("../../utils/asyncHandler");
 const { default: mongoose } = require("mongoose");
 
-
+// Get all pages
 exports.getAllPages = async (req, res) => {
-    try {
-        // Fetch all collections in the database
-        const collections = await mongoose.connection.db.listCollections().toArray();
-
-        // Filter out system collections and collections that don't match the PagesSchema
-        const collectionNames = collections
-            .map((collection) => collection.name)
-            .filter((name) => 
-                name !== "system.indexes" && 
-                name !== "admin" && 
-                name !== "local" && 
-                typeof name === "string" // Ensuring valid collection names
-            );
-            
-        // Log the collection names for debugging
-        console.log("Available collections:", collectionNames);
-
-        // Check if each collection matches the PagesSchema structure
-        const pageCollections = [];
-
-        for (const collectionName of collectionNames) {
-            // Fetch one document to check if it matches the PagesSchema structure
-            const sampleDoc = await mongoose.connection.db.collection(collectionName).findOne();
-
-            if (sampleDoc && sampleDoc.category && sampleDoc.status) {
-                // The collection matches the schema structure, add it to the pageCollections list
-                pageCollections.push(collectionName);
-            }
-        }
-
-        if (pageCollections.length === 0) {
-            return res.status(404).json({ message: "No valid page collections found" });
-        }
-
-        // Fetch documents from the valid page collections
-        const allPagesPromises = pageCollections.map(async (collectionName) => {
-            const PageModel = getDynamicPageModel(collectionName); // Dynamically get the model
-            const pages = await PageModel.find().lean(); // Fetch all documents in the collection
-            return pages.map((page) => ({ ...page, category: collectionName })); // Add collection name as category
-        });
-
-        const allPagesArray = await Promise.all(allPagesPromises); // Resolve all promises
-        const allPages = allPagesArray.flat(); // Flatten the array of arrays into a single array
-
-        res.status(200).json(allPages); // Return all pages
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ message: err.message });
-    }
+  try {
+    const pages = await Page.find();
+    res.json(pages);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
-
-
+// Find pages
 exports.FindPages = asyncHandler(async (req, res) => {
-    const { type, category } = req.query;
+  const type = req.query.type;
 
-    try {
-        const collections = await mongoose.connection.db.listCollections().toArray();
-
-        // Filter collections to exclude system collections
-        const collectionNames = collections
-            .map((collection) => collection.name)
-            .filter((name) =>
-                name !== "system.indexes" &&
-                name !== "admin" &&
-                name !== "local" &&
-                typeof name === "string"
-            );
-
-        // Filter collections matching the PagesSchema
-        const pageCollections = [];
-        for (const collectionName of collectionNames) {
-            const sampleDoc = await mongoose.connection.db.collection(collectionName).findOne();
-            if (sampleDoc && sampleDoc.category && sampleDoc.status) {
-                pageCollections.push(collectionName);
-            }
-        }
-
-        if (pageCollections.length === 0) {
-            return res.status(404).json({ message: "No valid page collections found" });
-        }
-
-        // Aggregate data from all valid collections
-        const allPagesPromises = pageCollections.map(async (collectionName) => {
-            const PageModel = getDynamicPageModel(collectionName);
-
-            const pipeline = [
-                {
-                    $addFields: {
-                        publish: {
-                            $ifNull: ["$publish", "$createdAt"],
-                        },
-                    },
-                },
-                {
-                    $facet: {
-                        totals: [
-                            {
-                                $group: {
-                                    _id: null,
-                                    published: {
-                                        $sum: {
-                                            $cond: [
-                                                { $eq: ["$status", "STATUS_ACTIVE"] },
-                                                1,
-                                                0,
-                                            ],
-                                        },
-                                    },
-                                    draft: {
-                                        $sum: {
-                                            $cond: [
-                                                { $eq: ["$status", "STATUS_INACTIVE"] },
-                                                1,
-                                                0,
-                                            ],
-                                        },
-                                    },
-                                    all: { $sum: 1 },
-                                },
-                            },
-                            {
-                                $project: {
-                                    _id: 0,
-                                    published: 1,
-                                    draft: 1,
-                                    all: 1,
-                                },
-                            },
-                        ],
-                        activePages: [
-                            {
-                                $match: type
-                                    ? { status: type }
-                                    : {},
-                            },
-                            {
-                                $project: {
-                                    _id: 1,
-                                    category: 1,
-                                    subcategory: 1,
-                                    pagestyle: 1,
-                                    cardstyle: 1,
-                                    status: 1,
-                                    publish: 1,
-                                    title: 1,
-                                    Languages: 1,
-                                },
-                            },
-                        ],
-                    },
-                },
-            ];
-
-            const result = await PageModel.aggregate(pipeline);
-
-            return {
-                collection: collectionName,
-                totals: result[0].totals[0] || {
-                    published: 0,
-                    draft: 0,
-                    all: 0,
-                },
-                activePages: result[0].activePages || [],
-            };
-        });
-
-        const allPagesResults = await Promise.all(allPagesPromises);
-
-        // Combine totals and active pages from all collections
-        const combinedTotals = allPagesResults.reduce(
-            (acc, curr) => {
-                acc.totalActive += curr.totals.published;
-                acc.totalDraft += curr.totals.draft;
-                acc.all += curr.totals.all;
-                return acc;
+  try {
+    if (type === "") {
+      const result = await Page.aggregate([
+        {
+          $addFields: {
+            publish: {
+              $ifNull: ["$publish", "$createdAt"],
             },
-            { totalActive: 0, totalDraft: 0, all: 0 }
-        );
-
-        const combinedActivePages = allPagesResults.flatMap((result) =>
-            result.activePages.map((page) => ({
-                ...page,
-                category: result.collection, // Add collection name as category
-            }))
-        );
-
-        res.json({
-            totals: combinedTotals,
-            activePages: combinedActivePages,
-        });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+          },
+        },
+        {
+          $facet: {
+            totals: [
+              {
+                $group: {
+                  _id: null,
+                  published: {
+                    $sum: {
+                      $cond: [{ $eq: ["$status", "STATUS_ACTIVE"] }, 1, 0],
+                    },
+                  },
+                  draft: {
+                    $sum: {
+                      $cond: [{ $eq: ["$status", "STATUS_INACTIVE"] }, 1, 0],
+                    },
+                  },
+                  all: { $sum: 1 },
+                },
+              },
+              {
+                $project: {
+                  _id: 0,
+                  published: 1,
+                  draft: 1,
+                  all: 1,
+                },
+              },
+            ],
+            activePages: [
+              {
+                $project: {
+                  _id: 1,
+                  category: 1,
+                  subcategory: 1,
+                  pagestyle: 1,
+                  cardstyle: 1,
+                  status: 1,
+                  publish: 1,
+                  title: 1,
+                  Languages: 1,
+                },
+              },
+            ],
+          },
+        },
+      ]);
+      res.json({
+        totals: result[0].totals[0] || {
+          totalActive: 0,
+          totalDraft: 0,
+        },
+        activePages: result[0].activePages,
+      });
+    } else {
+      const result = await Page.aggregate([
+        {
+          $addFields: {
+            publish: {
+              $ifNull: ["$publish", "$createdAt"],
+            },
+          },
+        },
+        {
+          $facet: {
+            totals: [
+              {
+                $group: {
+                  _id: null,
+                  published: {
+                    $sum: {
+                      $cond: [{ $eq: ["$status", "STATUS_ACTIVE"] }, 1, 0],
+                    },
+                  },
+                  draft: {
+                    $sum: {
+                      $cond: [{ $eq: ["$status", "STATUS_INACTIVE"] }, 1, 0],
+                    },
+                  },
+                  all: { $sum: 1 },
+                },
+              },
+              {
+                $project: {
+                  _id: 0,
+                  published: 1,
+                  draft: 1,
+                  all: 1,
+                },
+              },
+            ],
+            activePages: [
+              {
+                $match: { status: type },
+              },
+              {
+                $project: {
+                  _id: 1,
+                  category: 1,
+                  subcategory: 1,
+                  pagestyle: 1,
+                  cardstyle: 1,
+                  status: 1,
+                  publish: 1,
+                  title: 1,
+                  Languages: 1,
+                },
+              },
+            ],
+          },
+        },
+      ]);
+      res.json({
+        totals: result[0].totals[0] || {
+          totalActive: 0,
+          totalDraft: 0,
+        },
+        activePages: result[0].activePages,
+      });
     }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
-
-// Create a new page
-exports.createPage = async (req, res) => {
-    const { category, ...pageData } = req.body;
-
-    try {
-        const PageModel = getDynamicPageModel(category); // Get the dynamic model
-        
-        // Create and save the new page in the specified category collection
-        const newPage = await new PageModel({ category, ...pageData }).save();
-        res.status(201).json(newPage);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
+// Get page by ID
+exports.getPageById = async (req, res) => {
+  try {
+    const page = await Page.aggregate([
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(req.params.id),
+        },
+      },
+      {
+        $addFields: {
+          publish: {
+            $ifNull: ["$publish", "$createdAt"],
+          },
+        },
+      },
+    ]);
+    if (!page) {
+      return res.status(404).json({ message: "Page not found" });
     }
+    res.json(page[0]);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+exports.getPageByLanguage = async (req, res) => {
+  try {
+    const Pages = await Page.findOne({
+      Page: req.params.id,
+      Language: req.params.language,
+    });
+    if (!Pages) {
+      return res.status(201).json({ message: "Not Found" });
+    }
+    res.Pages = Pages;
+    res.status(200).json(res.Pages);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
 };
 
+exports.createPage = async (req, res) => {
+  const { category, ...pageData } = req.body;
+
+  try {
+    if (!category) {
+      return res.status(400).json({ message: "Category is required." });
+    }
+
+    // Get the dynamic model for the category
+    const DynamicPageModel = getDynamicPageModel(category);
+
+    // Create a new page document for the static collection
+    const newPage = new Page({ category, ...pageData });
+
+    // Save the page in the static collection first to get the generated ID
+    const savedPage = await newPage.save();
+
+    // Create a new page in the dynamic collection using the same ID
+    const dynamicPage = new DynamicPageModel({
+      _id: savedPage._id, // Use the same ID from the saved static page
+      category,
+      ...pageData,
+    });
+
+    // Save the page in the dynamic collection
+    await dynamicPage.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Page saved successfully in both collections",
+      // staticPage: savedPage,
+      // dynamicPage: dynamicPage,
+      savedPage,
+    });
+  } catch (err) {
+    console.error("Error creating page:", err.message);
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// Delete Multiple pages by ID
+exports.deletePages = async (req, res) => {
+  try {
+    const pageIds = req.body; // Expecting an array of page IDs
+
+    console.log("🚀 Deleting Pages:", pageIds);
+
+    // ✅ Validate Input
+    if (!Array.isArray(pageIds) || pageIds.length === 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid page IDs provided" });
+    }
+
+    const collections = await mongoose.connection.db
+      .listCollections()
+      .toArray();
+    const collectionNames = collections.map((c) => c.name);
+
+    const deletionPromises = pageIds.map(async (pageId) => {
+      try {
+        // ✅ Validate each ID
+        if (!mongoose.Types.ObjectId.isValid(pageId)) {
+          console.warn(`⚠️ Skipping invalid page ID: ${pageId}`);
+          return;
+        }
+
+        let foundCategory = null;
+
+        // ✅ Step 1: Check in Static Collection (pages)
+        let staticPage = await Page.findById(pageId);
+        if (staticPage) {
+          foundCategory = staticPage.category;
+        }
+
+        // ✅ Step 2: Check in Dynamic Collections if not found
+        if (!foundCategory) {
+          for (const collectionName of collectionNames) {
+            const DynamicPageModel = getDynamicPageModel(collectionName);
+            const dynamicPage = await DynamicPageModel.findById(pageId);
+            if (dynamicPage) {
+              foundCategory = collectionName;
+              break;
+            }
+          }
+        }
+
+        // ✅ Step 3: If No Matching Page Found, Skip Deletion
+        if (!foundCategory) {
+          console.warn(`⚠️ Page ID ${pageId} not found in any collection`);
+          return;
+        }
+
+        // ✅ Step 4: Delete from Static Collection (if exists)
+        if (staticPage) {
+          await Page.findByIdAndDelete(pageId);
+          console.log(`✅ Deleted from pages collection: ${pageId}`);
+        }
+
+        // ✅ Step 5: Delete from Dynamic Collection (if exists)
+        if (foundCategory) {
+          const DynamicPageModel = getDynamicPageModel(foundCategory);
+          await DynamicPageModel.findByIdAndDelete(pageId);
+          console.log(
+            `✅ Deleted from dynamic category collection: ${foundCategory}`
+          );
+        }
+      } catch (error) {
+        console.error(`🔥 Error deleting page ID ${pageId}:`, error.message);
+      }
+    });
+
+    // ✅ Wait for all deletions to complete
+    await Promise.all(deletionPromises);
+
+    // ✅ Step 6: Send Response
+    res.status(200).json({
+      success: true,
+      message: "Pages deleted successfully from both collections.",
+    });
+  } catch (err) {
+    console.error("🔥 Error deleting pages:", err.message);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
 
 exports.deletePage = async (req, res) => {
-    try {
-        const collections = await mongoose.connection.db.listCollections().toArray();
+  try {
+    const { id } = req.params;
 
-        // Get collection names and exclude system collections
-        const collectionNames = collections
-            .map((collection) => collection.name)
-            .filter(
-                (name) =>
-                    name !== "system.indexes" &&
-                    name !== "admin" &&
-                    name !== "local" &&
-                    typeof name === "string"
-            );
-
-        const { category } = req.query;
-
-        // Validate the category parameter
-        if (!category || !collectionNames.includes(category)) {
-            return res.status(400).json({ message: "Invalid or missing category" });
-        }
-
-        const PageModel = getDynamicPageModel(category);
-        const page = await PageModel.findById(req.params.id);
-
-        if (!page) {
-            return res.status(404).json({ message: "Page not found" });
-        }
-
-        // Handle related collections if any
-        if (page.relatedCollections && Array.isArray(page.relatedCollections)) {
-            const relatedDeletionPromises = page.relatedCollections.map(async (relation) => {
-                if (!relation.collectionName || !relation.field) {
-                    throw new Error("Invalid relation in relatedCollections");
-                }
-                const RelatedModel = getDynamicPageModel(relation.collectionName);
-                return RelatedModel.deleteMany({ [relation.field]: req.params.id });
-            });
-
-            await Promise.all(relatedDeletionPromises);
-        }
-
-        // Delete the main page
-        await PageModel.findByIdAndDelete(req.params.id);
-
-        res.json({ message: "Page and related documents deleted successfully" });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+    // ✅ Validate ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid page ID format. Must be a 24-character hex string.",
+      });
     }
+
+    let foundCategory = null;
+
+    // ✅ Step 1: Check in Static Collection (pages)
+    const staticPage = await Page.findById(id);
+    if (staticPage) {
+      foundCategory = staticPage.category;
+      await Page.findByIdAndDelete(id); // ✅ Delete from static collection
+    }
+
+    // ✅ Step 2: If Not Found in Static Collection, Search Dynamic Collections
+    if (!foundCategory) {
+      const collections = await mongoose.connection.db
+        .listCollections()
+        .toArray();
+      for (const collection of collections) {
+        const categoryName = collection.name;
+        const DynamicPageModel = getDynamicPageModel(categoryName);
+
+        // ✅ Check if page exists in dynamic collection
+        const dynamicPage = await DynamicPageModel.findById(id);
+        if (dynamicPage) {
+          foundCategory = categoryName;
+          break;
+        }
+      }
+    }
+
+    // ✅ Step 3: Delete from Dynamic Collection if Found
+    if (foundCategory) {
+      const DynamicPageModel = getDynamicPageModel(foundCategory);
+      const deleteResult = await DynamicPageModel.findByIdAndDelete(id);
+
+      if (!deleteResult) {
+        console.warn(
+          `⚠️ Page not found in dynamic collection: ${foundCategory}`
+        );
+      }
+    }
+
+    // ✅ Step 4: Send Response
+    res.status(200).json({
+      success: true,
+      message: "Page deleted successfully from both collections.",
+    });
+  } catch (err) {
+    console.error("🔥 Error deleting page:", err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
 };
-
-
-
-// Delete multiple pages by IDs
-exports.deletePages = async (req, res) => {
-    try {
-        const collections = await mongoose.connection.db.listCollections().toArray();
-
-        // Filter collections to exclude system collections
-        const collectionNames = collections
-            .map((collection) => collection.name)
-            .filter(
-                (name) =>
-                    name !== "system.indexes" &&
-                    name !== "admin" &&
-                    name !== "local" &&
-                    typeof name === "string"
-            );
-
-        const { category } = req.query;
-
-        if (!category || !collectionNames.includes(category)) {
-            return res.status(400).json({ message: "Invalid or missing category" });
-        }
-
-        const PageModel = getDynamicPageModel(category);
-
-        if (!req.body || !Array.isArray(req.body)) {
-            return res.status(400).json({ message: "Invalid page IDs provided" });
-        }
-
-        const deletionPromises = req.body.map(async (pageId) => {
-            const page = await PageModel.findById(pageId);
-
-            if (page) {
-                if (page.relatedCollections && Array.isArray(page.relatedCollections)) {
-                    const relatedDeletionPromises = page.relatedCollections.map(async (relation) => {
-                        if (!relation.collectionName || !relation.field) {
-                            throw new Error("Invalid relation in relatedCollections");
-                        }
-                        const RelatedModel = getDynamicPageModel(relation.collectionName);
-                        return RelatedModel.deleteMany({ [relation.field]: pageId });
-                    });
-
-                    await Promise.all(relatedDeletionPromises);
-                }
-
-                await PageModel.findByIdAndDelete(pageId);
-            }
-        });
-
-        await Promise.all(deletionPromises);
-
-
-        res.json({ message: "Pages and related documents deleted successfully" });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};
-
-
-
-exports.getPageById = async (req, res) => {
-    try {
-        // Fetch all collections in the database
-        const collections = await mongoose.connection.db.listCollections().toArray();
-
-        // Get collection names and exclude system collections
-        const collectionNames = collections
-            .map((collection) => collection.name)
-            .filter(
-                (name) =>
-                    name !== "system.indexes" &&
-                    name !== "admin" &&
-                    name !== "local" &&
-                    typeof name === "string"
-            );
-
-        // Validate the ObjectId format
-        const { id } = req.params;
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: "Invalid page ID format" });
-        }
-
-        let pageData = null;
-        let foundInCollection = null;
-
-        // Iterate over collections to find the document
-        for (let collectionName of collectionNames) {
-            const Model = getDynamicPageModel(collectionName);
-            if (!Model) {
-                continue; // Skip if model creation fails
-            }
-
-            const result = await Model.findById(id).lean();
-            if (result) {
-                pageData = result;
-                foundInCollection = collectionName;
-                break;
-            }
-        }
-
-        // If no page is found, return a 404
-        if (!pageData) {
-            return res.status(404).json({ message: "Page not found in any collection" });
-        }
-
-        // Return the page data and its collection
-        res.status(200).json({
-            page: pageData,
-            collection: foundInCollection, // Include the collection name for reference
-        });
-    } catch (err) {
-        console.error(`Error in getPageById: ${err.message}`);
-        res.status(500).json({ message: "Internal Server Error" });
-    }
-};  
-
 
 exports.updatePage = async (req, res) => {
-    try {
-        const { category } = req.query;
-        const collections = await mongoose.connection.db.listCollections().toArray();
-        const collectionNames = collections
-            .map((collection) => collection.name)
-            .filter(
-                (name) =>
-                    name !== "system.indexes" &&
-                    name !== "admin" &&
-                    name !== "local" &&
-                    typeof name === "string"
-            );
+  try {
+    const { id } = req.params;
 
-        if (!category || !collectionNames.includes(category)) {
-            return res.status(400).json({ message: "Invalid or missing category" });
-        }
-
-        const PageModel = getDynamicPageModel(category);
-
-        // Update page with data from the request body
-        const updatedPage = await PageModel.findByIdAndUpdate(
-            req.params.id,
-            { $set: req.body },
-            { new: true } // Return the updated document
-        );
-
-        if (!updatedPage) {
-            return res.status(404).json({ message: "Page not found" });
-        }
-
-        res.status(200).json({ message: "Page updated successfully", data: updatedPage });
-    } catch (err) {
-        console.error("Error updating page:", err.message);
-        res.status(500).json({ message: err.message });
+    // ✅ Validate ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid page ID format. Must be a 24-character hex string.",
+      });
     }
-};
 
+    let foundCategory = null;
+    let updatedStaticPage = null;
+    let updatedDynamicPage = null;
 
-exports.UpdatePageAvailability = async (req, res) => {
-    try {
-        const { category } = req.query;
-        const collections = await mongoose.connection.db.listCollections().toArray();
-        const collectionNames = collections
-            .map((collection) => collection.name)
-            .filter(
-                (name) =>
-                    name !== "system.indexes" &&
-                    name !== "admin" &&
-                    name !== "local" &&
-                    typeof name === "string"
-            );
-
-        if (!category || !collectionNames.includes(category)) {
-            return res.status(400).json({ message: "Invalid or missing category" });
-        }
-
-        const PageModel = getDynamicPageModel(category);
-
-        // Update Availability and defaultLanguage fields
-        const updatedPage = await PageModel.findByIdAndUpdate(
-            req.params.id,
-            {
-                $set: {
-                    Availability: req.body.Availability,
-                    defaultLanguage: req.body.defaultLanguage,
-                },
-            },
-            { new: true } // Return the updated document
-        );
-
-        if (!updatedPage) {
-            return res.status(404).json({ message: "Page not found" });
-        }
-
-        res.status(200).json({ message: "Page availability updated successfully", data: updatedPage });
-    } catch (err) {
-        console.error("Error updating page availability:", err.message);
-        res.status(500).json({ message: err.message });
+    // ✅ Step 1: Check in Static Collection
+    const staticPage = await Page.findById(id);
+    if (staticPage) {
+      foundCategory = staticPage.category;
+      staticPage.set(req.body);
+      updatedStaticPage = await staticPage.save();
     }
+
+    // ✅ Step 2: Check in Dynamic Collections if not found in Static
+    if (!foundCategory) {
+      const collections = await mongoose.connection.db
+        .listCollections()
+        .toArray();
+      for (const collection of collections) {
+        const categoryName = collection.name;
+        const DynamicPageModel = getDynamicPageModel(categoryName);
+
+        // ✅ Check if page exists in dynamic collection
+        const dynamicPage = await DynamicPageModel.findById(id);
+        if (dynamicPage) {
+          foundCategory = categoryName;
+          break;
+        }
+      }
+    }
+
+    // ✅ Step 3: Update in Dynamic Collection if Found
+    if (foundCategory) {
+      const DynamicPageModel = getDynamicPageModel(foundCategory);
+      let dynamicPage = await DynamicPageModel.findById(id);
+      if (dynamicPage) {
+        dynamicPage.set(req.body);
+        updatedDynamicPage = await dynamicPage.save();
+      } else {
+        console.warn(
+          `⚠️ Page found in static but not in dynamic: ${foundCategory}`
+        );
+      }
+    }
+
+    // ✅ Step 4: Send Response
+    if (!updatedStaticPage && !updatedDynamicPage) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Page not found in any collection" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Page updated successfully in both collections.",
+      updatedPage: updatedStaticPage || updatedDynamicPage,
+    });
+  } catch (err) {
+    console.error("🔥 Error updating page:", err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
 };
-
-
 
 exports.getPageAvailability = async (req, res) => {
-    try {
-        const { category } = req.query;
-        const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-        if (!category || typeof category !== "string" || category.trim() === "") {
-            return res.status(400).json({ message: "Category is required and must be a valid string" });
-        }
-
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: "Invalid page ID" });
-        }
-
-        const collections = await mongoose.connection.db.listCollections().toArray();
-        const collectionNames = collections.map((c) => c.name);
-
-        if (!collectionNames.includes(category)) {
-            return res.status(400).json({
-                message: `Invalid or non-existent category. Provided: ${category}. Available: ${collectionNames.join(", ")}.`,
-            });
-        }
-
-        const PageModel = getDynamicPageModel(category.trim());
-        if (!PageModel) {
-            return res.status(500).json({ message: "Unable to load the model for the specified category" });
-        }
-
-        const pages = await PageModel.aggregate([
-            { $match: { _id: new mongoose.Types.ObjectId(id) } },
-            {
-                $project: {
-                    Availability: { $ifNull: ["$Availability", []] },
-                    defaultLanguage: 1,
-                    pagestyle: 1,
-                },
-            },
-        ]);
-
-        if (!pages || pages.length === 0) {
-            return res.status(404).json({ message: "Page not found" });
-        }
-
-        res.status(200).json(pages[0]);
-    } catch (error) {
-        console.error("Error in getPageAvailability:", error.message);
-        res.status(500).json({
-            message: "Internal Server Error",
-            error: error.message,
-        });
+    if (!id || id.length !== 24 || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid page ID format. Ensure it's a 24-character hex string.",
+      });
     }
+
+    // Try to find the page in the static collection first
+    let staticPage = await Page.findById(id).select(
+      "category Availability defaultLanguage pagestyle"
+    );
+    let foundCategory = null;
+
+    if (staticPage) {
+      foundCategory = staticPage.category;
+    } else {
+      // If not found in static, check dynamic collections
+      const collections = await mongoose.connection.db
+        .listCollections()
+        .toArray();
+
+      for (const collection of collections) {
+        const categoryName = collection.name;
+        const DynamicPageModel = getDynamicPageModel(categoryName);
+        const dynamicPage = await DynamicPageModel.findById(id).select(
+          "Availability defaultLanguage pagestyle"
+        );
+
+        if (dynamicPage) {
+          foundCategory = categoryName;
+          staticPage = dynamicPage; // Store the dynamic page data
+          break;
+        }
+      }
+    }
+
+    // If page is still not found, return an error
+    if (!foundCategory) {
+      return res.status(404).json({
+        success: false,
+        message: "Page not found in any category",
+      });
+    }
+
+    // Merge data (staticPage now holds the page from the correct collection)
+    const pageAvailability = {
+      _id: staticPage._id,
+      Availability: staticPage.Availability || [],
+      defaultLanguage: staticPage.defaultLanguage || "",
+      pagestyle: staticPage.pagestyle || "",
+    };
+
+    res.status(200).json({ success: true, pageAvailability });
+  } catch (error) {
+    console.error("Error fetching page availability:", error.message);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal Server Error" });
+  }
 };
 
+exports.UpdatePageAvailability = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { Availability, defaultLanguage } = req.body;
+
+    // ✅ Validate ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid page ID format. Must be a 24-character hex string.",
+      });
+    }
+
+    let foundCategory = null;
+    let updatedStaticPage = null;
+    let updatedDynamicPage = null;
+
+    // ✅ Step 1: Check in Static Collection
+    const staticPage = await Page.findById(id);
+    if (staticPage) {
+      foundCategory = staticPage.category;
+      staticPage.Availability = Availability;
+      staticPage.defaultLanguage = defaultLanguage;
+      updatedStaticPage = await staticPage.save();
+    }
+
+    // ✅ Step 2: Check in Dynamic Collections if not found in Static
+    if (!foundCategory) {
+      const collections = await mongoose.connection.db
+        .listCollections()
+        .toArray();
+      for (const collection of collections) {
+        const categoryName = collection.name;
+        const DynamicPageModel = getDynamicPageModel(categoryName);
+
+        // ✅ Check if page exists in the dynamic collection
+        const dynamicPage = await DynamicPageModel.findById(id);
+        if (dynamicPage) {
+          foundCategory = categoryName;
+          break;
+        }
+      }
+    }
+
+    // ✅ Step 3: Update in Dynamic Collection if Found
+    if (foundCategory) {
+      const DynamicPageModel = getDynamicPageModel(foundCategory);
+      let dynamicPage = await DynamicPageModel.findById(id);
+      if (dynamicPage) {
+        dynamicPage.Availability = Availability;
+        dynamicPage.defaultLanguage = defaultLanguage;
+        updatedDynamicPage = await dynamicPage.save();
+      } else {
+        console.warn(
+          `⚠️ Page found in static but not in dynamic: ${foundCategory}`
+        );
+      }
+    }
+
+    // ✅ Step 4: Send Response
+    if (!updatedStaticPage && !updatedDynamicPage) {
+      return res.status(404).json({
+        success: false,
+        message: "Page not found in any collection",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Page availability updated successfully in both collections.",
+      updatedPage: updatedStaticPage || updatedDynamicPage,
+    });
+  } catch (error) {
+    console.error("🔥 Error updating page availability:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};

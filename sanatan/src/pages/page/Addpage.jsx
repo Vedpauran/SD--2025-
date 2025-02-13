@@ -36,8 +36,8 @@ function AddPage() {
 				.then((res) => {
 					Setsubcat(res.data);
 				})
-				.catch((e) => {});
-		} catch (error) {}
+				.catch((e) => { });
+		} catch (error) { }
 	}
 	const [Langs, Setlangs] = useState([]);
 	function fetchLanguages() {
@@ -47,8 +47,8 @@ function AddPage() {
 				.then((res) => {
 					Setlangs(res.data);
 				})
-				.catch((e) => {});
-		} catch (error) {}
+				.catch((e) => { });
+		} catch (error) { }
 	}
 
 	useEffect(() => {
@@ -169,11 +169,14 @@ function AddPage() {
 				await axios
 					.post(Api, Page)
 					.then((res) =>
-						navigate(`/pages/availability/${res.data._id}`)
+						// console.log("Page data ", res.data.title)
+						navigate(`/pages/availability/${res.data.savedPage._id}`)
 					)
 					.catch((e) => {
 						notifyError("Unexpected error");
 					});
+
+
 			} catch (error) {
 				notifyError("Unexpected error");
 			}

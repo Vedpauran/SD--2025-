@@ -9,88 +9,104 @@ import notifySuccess from "../../components/toasts/Success.toast";
 function AddAvailability() {
 	const navigate = useNavigate();
 	const { id } = useParams();
-	const [loading, setLoading] = useState();
+	const [loading, setLoading] = useState(true);
+	const [languages, setLanguages] = useState({});
+	const [Langs, Setlangs] = useState([]);
+	const [Page, setPage] = useState({
+		Availability: {},
+		defaultLanguage: "",
+		pagestyle: "",
+	});
+
 	async function fetchdata() {
-		setLoading(true);
-		const response = await axios.get(
-			`${process.env.REACT_APP_SERVER}pages/get-availability/${id}`
-		);
-		const language = await axios.get(
-			`${process.env.REACT_APP_SERVER}languages/`
-		);
-		console.log(response);
-		setPage(response.data[0]);
-		setLanguages(response.data[0].Availability);
-		Setlangs(language.data);
-		setLoading(false);
+		try {
+			setLoading(true);
+			const [pageResponse, langResponse] = await Promise.all([
+				axios.get(`${process.env.REACT_APP_SERVER}pages/get-availability/${id}`),
+				axios.get(`${process.env.REACT_APP_SERVER}languages/`)
+			]);
+
+			const pageData = pageResponse.data.pageAvailability || {};
+
+			setPage({
+				Availability: pageData.Availability || {},
+				defaultLanguage: pageData.defaultLanguage || "",
+				pagestyle: pageData.pagestyle || "",  // ✅ Ensure pagestyle is set
+			});
+
+			setLanguages(pageData.Availability || {});
+			Setlangs(langResponse.data || []);
+
+			console.log("Fetched Page Data:", pageData);
+		} catch (error) {
+			console.error("Fetch error:", error);
+			notifyError("Failed to load page data");
+		} finally {
+			setLoading(false);
+		}
 	}
 
 	async function submitHandler() {
 		try {
 			const response = await axios.patch(
 				`${process.env.REACT_APP_SERVER}pages/update-availability/${id}`,
-				Page
+				{ ...Page, Availability: languages }
 			);
+
 			if (response.data._id) {
-				notifySuccess("Successfully updated availability");
+				notifySuccess("Availability updated successfully");
 			}
 		} catch (e) {
-			notifyError("Unexpected error");
+			notifyError("Error saving changes");
 		}
 	}
 
 	async function pageRedirector(language, style) {
-		setPage({ ...Page, Availability: languages });
 		try {
-			const response = await axios.patch(
-				`${process.env.REACT_APP_SERVER}pages/update-availability/${id}`,
-				Page
-			);
-			console.log(response);
-			if (response.data._id) {
-				try {
-					axios
-						.get(
-							`${process.env.REACT_APP_SERVER}page/${style}/${id}/${language}`
-						)
-						.then((res) => {
-							console.log(res);
-							if (res.data._id) {
-								navigate(
-									`/pages/edit/${style}/${res.data._id}/${language}`
-								);
-							} else {
-								navigate(`/pages/add/${style}/${id}/${language}`);
-							}
-						})
-						.catch((e) => {
-							notifyError("Unexpected error");
-						});
-				} catch (error) {
-					notifyError("Unexpected Error");
-				}
+			if (!Page.pagestyle) {
+				notifyError("Page style is missing!");
+				return;
 			}
-		} catch (error) {}
+
+			const updatedPage = {
+				...Page,
+				Availability: languages,
+				pagestyle: style || Page.pagestyle  // ✅ Ensure pagestyle is not undefined
+			};
+
+			await axios.patch(
+				`${process.env.REACT_APP_SERVER}pages/update-availability/${id}`,
+				updatedPage
+			);
+
+			const res = await axios.get(
+				`${process.env.REACT_APP_SERVER}page/${updatedPage.pagestyle}/${id}/${language}`
+			);
+
+			navigate(res.data._id
+				? `/pages/edit/${updatedPage.pagestyle}/${res.data._id}/${language}`
+				: `/pages/add/${updatedPage.pagestyle}/${id}/${language}`
+			);
+		} catch (error) {
+			console.error("Redirect error:", error);
+			notifyError("Failed to redirect");
+		}
 	}
 
 	useEffect(() => {
-		fetchdata();
-	}, []);
-	const [languages, setLanguages] = useState({});
-	const [Page, setPage] = useState({
-		Availability: {},
-		defaultLanguage: "",
-		pagestyle: "",
-	});
-	const [Langs, Setlangs] = useState([]);
+		if (id) fetchdata();
+	}, [id]);
+
 	useEffect(() => {
-		setPage({ ...Page, Availability: languages });
-		console.log(Page);
+		setPage(prev => ({ ...prev, Availability: languages }));
 	}, [languages]);
+
 	return (
 		<div>
 			<h1>Language Availability</h1>
-			{!loading && (
+			{loading ? (
+				<p>Loading...</p>
+			) : (
 				<>
 					<LanguageDropDownComponent
 						items={Langs}
@@ -100,7 +116,7 @@ function AddAvailability() {
 							pageRedirector(language, Page.pagestyle)
 						}
 						setdefaultLanguage={(value) =>
-							setPage({ ...Page, defaultLanguage: value })
+							setPage(prev => ({ ...prev, defaultLanguage: value }))
 						}
 						defaultLanguage={Page.defaultLanguage}
 					/>
