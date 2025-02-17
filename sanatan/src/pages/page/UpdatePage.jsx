@@ -21,14 +21,14 @@ function UpdatePage() {
 	const Api = `${process.env.REACT_APP_SERVER}pages/${id}`;
 	// Fetch Categories and Subcategoeries
 
-	// const fetchsubcategory = async (parent) => {
-	// 	try {
-	// 		const Api2 = `${process.env.REACT_APP_SERVER}c/categories/sub/find/${parent}`;
-	// 		const Subcategoeries = await axios.get(Api2);
-	// 		//console.log(Subcategoeries);
-	// 		Setsubcat(Subcategoeries.data);
-	// 	} catch (error) {}
-	// };
+	const fetchsubcategory = async (parent) => {
+		try {
+			const Api2 = `${process.env.REACT_APP_SERVER}c/categories/sub/find/${parent}`;
+			const Subcategoeries = await axios.get(Api2);
+			//console.log(Subcategoeries);
+			Setsubcat(Subcategoeries.data);
+		} catch (error) { }
+	};
 
 	async function fetchdata() {
 		try {
@@ -36,9 +36,7 @@ function UpdatePage() {
 			const response = await axios.get(Api);
 			setPage(response.data);
 			const category = await axios.get(
-				// `${process.env.REACT_APP_SERVER}c/categories/in/Pages/${id}`
-				`${process.env.REACT_APP_SERVER}c/categories/main`
-
+				`${process.env.REACT_APP_SERVER}c/categories/in/Pages`
 			);
 			Setcat(category.data);
 		} catch (error) { }
@@ -78,7 +76,6 @@ function UpdatePage() {
 		fetchdata();
 	}, []);
 
-
 	const submitHandler = async (e) => {
 		e.preventDefault();
 
@@ -111,9 +108,8 @@ function UpdatePage() {
 		const matchedCategory = Cat.find(
 			(category) => category.Name === e.target.value
 		);
-		// fetchsubcategory(matchedCategory._id);
+		fetchsubcategory(matchedCategory._id);
 	};
-
 	async function pageRedirector(language) {
 		if (!Page.category || !Page.title || !Page.pagestyle) {
 			toast.error("Pagestyle, categories, and title required", {
@@ -244,21 +240,12 @@ function UpdatePage() {
 						<div className="drop-col">
 							{" "}
 							<span className="drop-lable">Publish</span>
-							{/* <input
+							<input
 								type="datetime-local"
 								name="publish"
 								value={Page.publish.toString().slice(0, 16)}
 								onChange={inputHandler}
-							/> */}
-							<input
-								type="datetime-local"
-								name="publish"
-								value={Page.publish ? Page.publish.toString().slice(0, 16) : ""}
-								onChange={inputHandler}
 							/>
-
-
-
 						</div>
 					</div>
 				</div>

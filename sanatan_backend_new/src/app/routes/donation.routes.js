@@ -164,15 +164,11 @@ const getUserInvoices = asyncHandler(async (req, res) => {
 // ✅ Get donation content by ID
 const getDonationContent = asyncHandler(async (req, res) => {
   try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid ID" });
-    }
-
     const contents = await DonationContent.aggregate([
       {
-        $match: { _id: new mongoose.Types.ObjectId(id) },
+        $match: {
+          _id: new mongoose.Types.ObjectId(req.params.id),
+        },
       },
       {
         $lookup: {
@@ -212,24 +208,21 @@ const getDonationContent = asyncHandler(async (req, res) => {
       },
       {
         $addFields: {
-          Page: { $first: "$Page" },
+          Page: {
+            $first: "$Page", // Use $Page to reference the array
+          },
         },
       },
     ]);
+    res.status(200).json(
+      new ApiResponse(
+        200,
 
-    if (!contents.length) {
-      return res.status(404).json({ message: "Content not found" });
-    }
+        contents,
 
-    res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          contents[0],
-          "Donation Content fetched Successfully"
-        )
-      );
+        "Donation Content fetched Successfully"
+      )
+    );
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
