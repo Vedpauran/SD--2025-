@@ -141,7 +141,7 @@ function FileManager() {
 
   // Get file type
   const getFileType = (fileName, id, filepath) => {
-    const imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "svg"];
+    const imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "svg", "jfif", "tiff", "webp", "ico", "heic"];
     const videoExtensions = ["mp4", "mov", "avi", "mkv", "webm", "flv"];
     const audioExtensions = ["mp3"];
 

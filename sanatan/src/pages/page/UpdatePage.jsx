@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import {
 	Navigate,
 	useNavigate,
-	Link,   
+	Link,
 	useParams,
 } from "react-router-dom";
 import TitleComponent from "../../components/form-components/Title";
@@ -41,7 +41,7 @@ function UpdatePage() {
 
 			);
 			Setcat(category.data);
-		} catch (error) {}
+		} catch (error) { }
 	}
 
 	const navigate = useNavigate();
@@ -115,32 +115,30 @@ function UpdatePage() {
 	};
 
 	async function pageRedirector(language) {
-		if (
-			Page.category === "" ||
-			Page.title === "" ||
-			Page.pagestyle === ""
-		) {
-			const notify = () =>
-				toast.error("Pagestyle, categories and title required", {
-					position: "bottom-right",
-					autoClose: 5000,
-					hideProgressBar: false,
-					closeOnClick: true,
-					pauseOnHover: true,
-					draggable: true,
-					progress: undefined,
-					theme: "light",
-				});
-			notify();
-		} else {
-			try {
-				const res = await axios.put(Api, Page);
-				if (res.data._id) {
-					navigate(`/pages/availability/${res.data._id}`);
-				}
-			} catch (error) {
-				notifyError("Unexpected error");
+		if (!Page.category || !Page.title || !Page.pagestyle) {
+			toast.error("Pagestyle, categories, and title required", {
+				position: "bottom-right",
+				autoClose: 5000,
+				hideProgressBar: false,
+				closeOnClick: true,
+				pauseOnHover: true,
+				draggable: true,
+				progress: undefined,
+				theme: "light",
+			});
+			return;
+		}
+
+		try {
+			const res = await axios.put(Api, Page);
+
+			if (res.data && res.data.updatedPage && res.data.updatedPage._id) {
+				navigate(`/pages/availability/${res.data.updatedPage._id}`);
+			} else {
+				notifyError("Unexpected error: Missing page ID");
 			}
+		} catch (error) {
+			notifyError("Unexpected error");
 		}
 	}
 
@@ -252,7 +250,7 @@ function UpdatePage() {
 								value={Page.publish.toString().slice(0, 16)}
 								onChange={inputHandler}
 							/> */}
-                            <input
+							<input
 								type="datetime-local"
 								name="publish"
 								value={Page.publish ? Page.publish.toString().slice(0, 16) : ""}
