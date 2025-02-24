@@ -30,17 +30,45 @@ function UpdatePage() {
 		} catch (error) { }
 	};
 
+	// async function fetchdata() {
+	// 	try {
+	// 		setloading(true);
+	// 		const response = await axios.get(Api);
+	// 		setPage(response.data);
+	// 		const category = await axios.get(
+	// 			`${process.env.REACT_APP_SERVER}c/categories/in/Pages`
+	// 		);
+	// 		Setcat(category.data);
+	// 	} catch (error) { }
+	// }
 	async function fetchdata() {
 		try {
 			setloading(true);
 			const response = await axios.get(Api);
 			setPage(response.data);
+
+			// Fetch categories
 			const category = await axios.get(
 				`${process.env.REACT_APP_SERVER}c/categories/in/Pages`
 			);
 			Setcat(category.data);
-		} catch (error) { }
+
+			// Fetch subcategories if a category is already selected
+			if (response.data.category) {
+				const matchedCategory = category.data.find(
+					(cat) => cat.Name === response.data.category
+				);
+				if (matchedCategory) {
+					await fetchsubcategory(matchedCategory._id);
+				}
+			}
+		} catch (error) {
+			console.error("Error fetching data:", error);
+		} finally {
+			setloading(false);
+		}
 	}
+
 
 	const navigate = useNavigate();
 	const Model = {
@@ -103,13 +131,25 @@ function UpdatePage() {
 		}
 	};
 
-	const Dropselect = (e) => {
-		setPage({ ...Page, category: e.target.value });
-		const matchedCategory = Cat.find(
-			(category) => category.Name === e.target.value
-		);
-		fetchsubcategory(matchedCategory._id);
+	// const Dropselect = (e) => {
+	// 	setPage({ ...Page, category: e.target.value });
+	// 	const matchedCategory = Cat.find(
+	// 		(category) => category.Name === e.target.value
+	// 	);
+	// 	fetchsubcategory(matchedCategory._id);
+	// };
+
+	const Dropselect = async (e) => {
+		const selectedCategory = e.target.value;
+		setPage({ ...Page, category: selectedCategory });
+
+		const matchedCategory = Cat.find((category) => category.Name === selectedCategory);
+		if (matchedCategory) {
+			await fetchsubcategory(matchedCategory._id);
+		}
 	};
+
+
 	async function pageRedirector(language) {
 		if (!Page.category || !Page.title || !Page.pagestyle) {
 			toast.error("Pagestyle, categories, and title required", {
@@ -178,7 +218,7 @@ function UpdatePage() {
 						<div className="drop-col">
 							{" "}
 							<span className="drop-lable">Select Sub Category</span>
-							<select
+							{/* <select
 								className="drop"
 								onChange={inputHandler}
 								value={Page.subcategory}
@@ -191,7 +231,21 @@ function UpdatePage() {
 										</option>
 									);
 								})}
+							</select> */}
+							<select
+								className="drop"
+								onChange={inputHandler}
+								value={Page.subcategory}
+								name="subcategory"
+							>
+								<option value="">------</option>
+								{SubCat.map((op) => (
+									<option key={op._id} value={op.Name}>
+										{op.Name}
+									</option>
+								))}
 							</select>
+
 						</div>
 						<div className="drop-col">
 							{" "}
