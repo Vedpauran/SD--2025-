@@ -13,17 +13,153 @@ exports.getAllPages = async (req, res) => {
   }
 };
 // Find pages
+// exports.FindPages = asyncHandler(async (req, res) => {
+//   const type = req.query.type;
+
+//   try {
+//     if (type === "") {
+//       const result = await Page.aggregate([
+//         {
+//           $addFields: {
+//             publish: {
+//               $ifNull: ["$publish", "$createdAt"],
+//             },
+//           },
+//         },
+//         {
+//           $facet: {
+//             totals: [
+//               {
+//                 $group: {
+//                   _id: null,
+//                   published: {
+//                     $sum: {
+//                       $cond: [{ $eq: ["$status", "STATUS_ACTIVE"] }, 1, 0],
+//                     },
+//                   },
+//                   draft: {
+//                     $sum: {
+//                       $cond: [{ $eq: ["$status", "STATUS_INACTIVE"] }, 1, 0],
+//                     },
+//                   },
+//                   all: { $sum: 1 },
+//                 },
+//               },
+//               {
+//                 $project: {
+//                   _id: 0,
+//                   published: 1,
+//                   draft: 1,
+//                   all: 1,
+//                 },
+//               },
+//             ],
+//             activePages: [
+//               {
+//                 $project: {
+//                   _id: 1,
+//                   category: 1,
+//                   subcategory: 1,
+//                   pagestyle: 1,
+//                   cardstyle: 1,
+//                   status: 1,
+//                   publish: 1,
+//                   title: 1,
+//                   Languages: 1,
+//                 },
+//               },
+//             ],
+//           },
+//         },
+//       ]);
+//       res.json({
+//         totals: result[0].totals[0] || {
+//           totalActive: 0,
+//           totalDraft: 0,
+//         },
+//         activePages: result[0].activePages,
+//       });
+//     } else {
+//       const result = await Page.aggregate([
+//         {
+//           $addFields: {
+//             publish: {
+//               $ifNull: ["$publish", "$createdAt"],
+//             },
+//           },
+//         },
+//         {
+//           $facet: {
+//             totals: [
+//               {
+//                 $group: {
+//                   _id: null,
+//                   published: {
+//                     $sum: {
+//                       $cond: [{ $eq: ["$status", "STATUS_ACTIVE"] }, 1, 0],
+//                     },
+//                   },
+//                   draft: {
+//                     $sum: {
+//                       $cond: [{ $eq: ["$status", "STATUS_INACTIVE"] }, 1, 0],
+//                     },
+//                   },
+//                   all: { $sum: 1 },
+//                 },
+//               },
+//               {
+//                 $project: {
+//                   _id: 0,
+//                   published: 1,
+//                   draft: 1,
+//                   all: 1,
+//                 },
+//               },
+//             ],
+//             activePages: [
+//               {
+//                 $match: { status: type },
+//               },
+//               {
+//                 $project: {
+//                   _id: 1,
+//                   category: 1,
+//                   subcategory: 1,
+//                   pagestyle: 1,
+//                   cardstyle: 1,
+//                   status: 1,
+//                   publish: 1,
+//                   title: 1,
+//                   Languages: 1,
+//                 },
+//               },
+//             ],
+//           },
+//         },
+//       ]);
+//       res.json({
+//         totals: result[0].totals[0] || {
+//           totalActive: 0,
+//           totalDraft: 0,
+//         },
+//         activePages: result[0].activePages,
+//       });
+//     }
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// });
+
 exports.FindPages = asyncHandler(async (req, res) => {
-  const type = req.query.type;
+  const type = req.query.type; // Expected values: "", "all", "trash", "STATUS_ACTIVE", "STATUS_INACTIVE", etc.
 
   try {
-    if (type === "") {
+    if (type === "" || type.toLowerCase() === "all") {
+      // "All" view: show totals from all pages, but activePages exclude trashed pages.
       const result = await Page.aggregate([
         {
           $addFields: {
-            publish: {
-              $ifNull: ["$publish", "$createdAt"],
-            },
+            publish: { $ifNull: ["$publish", "$createdAt"] },
           },
         },
         {
@@ -42,19 +178,18 @@ exports.FindPages = asyncHandler(async (req, res) => {
                       $cond: [{ $eq: ["$status", "STATUS_INACTIVE"] }, 1, 0],
                     },
                   },
+                  trash: {
+                    $sum: { $cond: [{ $eq: ["$status", "trash"] }, 1, 0] },
+                  },
                   all: { $sum: 1 },
                 },
               },
               {
-                $project: {
-                  _id: 0,
-                  published: 1,
-                  draft: 1,
-                  all: 1,
-                },
+                $project: { _id: 0, published: 1, draft: 1, trash: 1, all: 1 },
               },
             ],
             activePages: [
+              { $match: { status: { $ne: "trash" } } },
               {
                 $project: {
                   _id: 1,
@@ -74,18 +209,19 @@ exports.FindPages = asyncHandler(async (req, res) => {
       ]);
       res.json({
         totals: result[0].totals[0] || {
-          totalActive: 0,
-          totalDraft: 0,
+          published: 0,
+          draft: 0,
+          trash: 0,
+          all: 0,
         },
         activePages: result[0].activePages,
       });
     } else {
+      // Specific filter: e.g., "trash", "STATUS_ACTIVE", "STATUS_INACTIVE", etc.
       const result = await Page.aggregate([
         {
           $addFields: {
-            publish: {
-              $ifNull: ["$publish", "$createdAt"],
-            },
+            publish: { $ifNull: ["$publish", "$createdAt"] },
           },
         },
         {
@@ -104,22 +240,18 @@ exports.FindPages = asyncHandler(async (req, res) => {
                       $cond: [{ $eq: ["$status", "STATUS_INACTIVE"] }, 1, 0],
                     },
                   },
+                  trash: {
+                    $sum: { $cond: [{ $eq: ["$status", "trash"] }, 1, 0] },
+                  },
                   all: { $sum: 1 },
                 },
               },
               {
-                $project: {
-                  _id: 0,
-                  published: 1,
-                  draft: 1,
-                  all: 1,
-                },
+                $project: { _id: 0, published: 1, draft: 1, trash: 1, all: 1 },
               },
             ],
             activePages: [
-              {
-                $match: { status: type },
-              },
+              { $match: { status: type } },
               {
                 $project: {
                   _id: 1,
@@ -139,8 +271,10 @@ exports.FindPages = asyncHandler(async (req, res) => {
       ]);
       res.json({
         totals: result[0].totals[0] || {
-          totalActive: 0,
-          totalDraft: 0,
+          published: 0,
+          draft: 0,
+          trash: 0,
+          all: 0,
         },
         activePages: result[0].activePages,
       });
@@ -317,67 +451,67 @@ exports.deletePages = async (req, res) => {
   }
 };
 
-exports.deletePage = async (req, res) => {
-  try {
-    const { id } = req.params;
+// exports.deletePage = async (req, res) => {
+//   try {
+//     const { id } = req.params;
 
-    // ✅ Validate ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid page ID format. Must be a 24-character hex string.",
-      });
-    }
+//     // ✅ Validate ID
+//     if (!mongoose.Types.ObjectId.isValid(id)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invalid page ID format. Must be a 24-character hex string.",
+//       });
+//     }
 
-    let foundCategory = null;
+//     let foundCategory = null;
 
-    // ✅ Step 1: Check in Static Collection (pages)
-    const staticPage = await Page.findById(id);
-    if (staticPage) {
-      foundCategory = staticPage.category;
-      await Page.findByIdAndDelete(id); // ✅ Delete from static collection
-    }
+//     // ✅ Step 1: Check in Static Collection (pages)
+//     const staticPage = await Page.findById(id);
+//     if (staticPage) {
+//       foundCategory = staticPage.category;
+//       await Page.findByIdAndDelete(id); // ✅ Delete from static collection
+//     }
 
-    // ✅ Step 2: If Not Found in Static Collection, Search Dynamic Collections
-    if (!foundCategory) {
-      const collections = await mongoose.connection.db
-        .listCollections()
-        .toArray();
-      for (const collection of collections) {
-        const categoryName = collection.name;
-        const DynamicPageModel = getDynamicPageModel(categoryName);
+//     // ✅ Step 2: If Not Found in Static Collection, Search Dynamic Collections
+//     if (!foundCategory) {
+//       const collections = await mongoose.connection.db
+//         .listCollections()
+//         .toArray();
+//       for (const collection of collections) {
+//         const categoryName = collection.name;
+//         const DynamicPageModel = getDynamicPageModel(categoryName);
 
-        // ✅ Check if page exists in dynamic collection
-        const dynamicPage = await DynamicPageModel.findById(id);
-        if (dynamicPage) {
-          foundCategory = categoryName;
-          break;
-        }
-      }
-    }
+//         // ✅ Check if page exists in dynamic collection
+//         const dynamicPage = await DynamicPageModel.findById(id);
+//         if (dynamicPage) {
+//           foundCategory = categoryName;
+//           break;
+//         }
+//       }
+//     }
 
-    // ✅ Step 3: Delete from Dynamic Collection if Found
-    if (foundCategory) {
-      const DynamicPageModel = getDynamicPageModel(foundCategory);
-      const deleteResult = await DynamicPageModel.findByIdAndDelete(id);
+//     // ✅ Step 3: Delete from Dynamic Collection if Found
+//     if (foundCategory) {
+//       const DynamicPageModel = getDynamicPageModel(foundCategory);
+//       const deleteResult = await DynamicPageModel.findByIdAndDelete(id);
 
-      if (!deleteResult) {
-        console.warn(
-          `⚠️ Page not found in dynamic collection: ${foundCategory}`
-        );
-      }
-    }
+//       if (!deleteResult) {
+//         console.warn(
+//           `⚠️ Page not found in dynamic collection: ${foundCategory}`
+//         );
+//       }
+//     }
 
-    // ✅ Step 4: Send Response
-    res.status(200).json({
-      success: true,
-      message: "Page deleted successfully from both collections.",
-    });
-  } catch (err) {
-    console.error("🔥 Error deleting page:", err);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
-  }
-};
+//     // ✅ Step 4: Send Response
+//     res.status(200).json({
+//       success: true,
+//       message: "Page deleted successfully from both collections.",
+//     });
+//   } catch (err) {
+//     console.error("🔥 Error deleting page:", err);
+//     res.status(500).json({ success: false, message: "Internal Server Error" });
+//   }
+// };
 
 exports.updatePage = async (req, res) => {
   try {
@@ -598,5 +732,91 @@ exports.UpdatePageAvailability = async (req, res) => {
       message: "Internal Server Error",
       error: error.message,
     });
+  }
+};
+
+// Move page to trash and set a 'deletedAt' timestamp
+exports.deletePage = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // ✅ Validate ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid page ID format. Must be a 24-character hex string.",
+      });
+    }
+
+    let staticFound = false;
+    let dynamicFound = false;
+
+    // ✅ Step 1: Process Static Collection (pages)
+    const staticPage = await Page.findById(id);
+    if (staticPage) {
+      staticFound = true;
+      if (staticPage.status === "trash") {
+        // Permanently delete if already in trash
+        await Page.findByIdAndDelete(id);
+        // console.log(
+        //   `🚨 Permanently deleted page from static collection: ${id}`
+        // );
+      } else {
+        // Move to trash (soft delete)
+        await Page.findByIdAndUpdate(id, {
+          status: "trash",
+          deletedAt: new Date(),
+        });
+        // console.log(`🗑️ Moved page to trash in static collection: ${id}`);
+      }
+    }
+
+    // ✅ Step 2: Process Dynamic Collections regardless of static result
+    const collections = await mongoose.connection.db
+      .listCollections()
+      .toArray();
+    for (const collection of collections) {
+      // Skip the static collection (assumed to be named "pages")
+      if (collection.name === "pages") continue;
+      const categoryName = collection.name;
+      const DynamicPageModel = getDynamicPageModel(categoryName);
+      const dynamicPage = await DynamicPageModel.findById(id);
+      if (dynamicPage) {
+        dynamicFound = true;
+        if (dynamicPage.status === "trash") {
+          // Permanently delete if already in trash
+          await DynamicPageModel.findByIdAndDelete(id);
+          // console.log(
+          //   `🚨 Permanently deleted page from dynamic collection: ${categoryName}`
+          // );
+        } else {
+          // Move to trash (soft delete)
+          await DynamicPageModel.findByIdAndUpdate(id, {
+            status: "trash",
+            deletedAt: new Date(),
+          });
+          // console.log(
+          //   `🗑️ Moved page to trash in dynamic collection: ${categoryName}`
+          // );
+        }
+        break; // Assuming the page appears in only one dynamic collection
+      }
+    }
+
+    // ✅ Final Response based on whether the page was found in any collection
+    if (staticFound || dynamicFound) {
+      res.status(200).json({
+        success: true,
+        message: "Page processed successfully (deleted or moved to trash).",
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "Page not found in any collection.",
+      });
+    }
+  } catch (err) {
+    console.error("🔥 Error processing page deletion:", err.message);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };

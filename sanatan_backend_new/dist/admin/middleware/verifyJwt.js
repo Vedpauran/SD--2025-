@@ -1,12 +1,17 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/admin");
-const asyncHandler = requestHandler => {
+const asyncHandler = (requestHandler) => {
   return (req, res, next) => {
-    Promise.resolve(requestHandler(req, res, next)).catch(err => next(err));
+    Promise.resolve(requestHandler(req, res, next)).catch((err) => next(err));
   };
 };
 class ApiError extends Error {
-  constructor(statusCode, message = "Something went wrong", errors = [], stack = "") {
+  constructor(
+    statusCode,
+    message = "Something went wrong",
+    errors = [],
+    stack = ""
+  ) {
     super(message);
     this.statusCode = statusCode;
     this.data = null;
@@ -22,13 +27,17 @@ class ApiError extends Error {
 }
 const verifyJWT = asyncHandler(async (req, _, next) => {
   try {
-    const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
-    console.log(token);
+    const token =
+      req.cookies?.accessToken ||
+      req.header("Authorization")?.replace("Bearer ", "");
+    // console.log(token);
     if (!token) {
       throw new ApiError(401, "Unauthorized request");
     }
     const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    const user = await User.findById(decodedToken?._id).select("-password -refreshToken");
+    const user = await User.findById(decodedToken?._id).select(
+      "-password -refreshToken"
+    );
     if (!user) {
       throw new ApiError(401, "Invalid Access Token");
     }

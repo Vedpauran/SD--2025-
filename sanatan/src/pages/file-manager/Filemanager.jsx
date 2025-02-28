@@ -142,8 +142,16 @@ function FileManager() {
   // Get file type
   const getFileType = (fileName, id, filepath) => {
     const imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "svg", "jfif", "tiff", "webp", "ico", "heic"];
-    const videoExtensions = ["mp4", "mov", "avi", "mkv", "webm", "flv"];
-    const audioExtensions = ["mp3"];
+    const videoExtensions = [
+      "mp4", "mp3", "mov", "avi", "mkv", "webm", "flv", "wmv", "m4v",
+      "3gp", "3g2", "f4v", "mpeg", "mpg", "ts", "mts", "m2ts",
+      "rm", "rmvb", "asf"
+    ];
+
+    const audioExtensions = [
+      "mp3", "mp4", "wav", "aac", "ogg", "flac", "wma", "m4a", "aiff",
+      "alac", "opus", "amr", "pcm", "mid", "midi"
+    ];
 
     const fileExtension = fileName.split(".").pop().toLowerCase();
 

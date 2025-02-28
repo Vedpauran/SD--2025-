@@ -42,7 +42,7 @@ function Pagefilter({ counts, onchange }) {
 				<span
 					className={selected === 4 ? "yellow" : ""}
 					onClick={() => Clickevent(4)}>
-					Trash(0)
+					Trash({counts.trash})
 				</span>
 			</div>
 		</div>

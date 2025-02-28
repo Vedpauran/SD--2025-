@@ -7,7 +7,7 @@ import DataTable from "../../components/table/table.component";
 import Pagefilter from "../../components/Pagefilter";
 
 function Pages() {
-	var Api = `${process.env.REACT_APP_SERVER}pages/`
+    var Api = `${process.env.REACT_APP_SERVER}pages/`
 
     const [Pages, setPages] = useState([]);
     const [countPages, setCountPages] = useState({
@@ -186,83 +186,83 @@ function Pages() {
                 .then((res) => {
                     fetchdata();
                 })
-                .catch((error) => {});
-        } catch (error) {}
+                .catch((error) => { });
+        } catch (error) { }
         setdeleteBulk(false);
     };
 
 
-	
-	
-	return (
-		<div>
-			<div>
-				{open && (
-					<div className="modal-del">
-						<div className="warn-text">
-							Are you sure you want to delete ?{" "}
-						</div>
-						<div className="model-btns">
-							<button
-								onClick={handleDialogClose}
-								className="close-del">
-								Close
-							</button>
-							<button
-								onClick={(e) => handleConfirm()}
-								className="modal-delbtn">
-								Delete
-							</button>
-						</div>
-					</div>
-				)}
-				{deleteBulk && (
-					<div className="modal-del">
-						<div className="warn-text">
-							Are you sure you want to delete ?{" "}
-						</div>
-						<div className="model-btns">
-							<button onClick={handleBulkClose} className="close-del">
-								Close
-							</button>
-							<button
-								onClick={(e) => handleBulkConfirm()}
-								className="modal-delbtn">
-								Delete
-							</button>
-						</div>
-					</div>
-				)}
-				{showfilter && (
-					<div className="filter">
-						<strong className="yellow">Bulk Actions</strong>
 
-						<span>
-							<strong>Edit</strong>
-						</span>
-						<span>
-							<strong>Move to Trash</strong>
-						</span>
-					</div>
-				)}
 
-				<h1>Pages</h1>
-				<Pagefilter
-					counts={countPages}
-					onchange={(q) => fetchdata(q)}
-				/>
+    return (
+        <div>
+            <div>
+                {open && (
+                    <div className="modal-del">
+                        <div className="warn-text">
+                            Are you sure you want to delete ?{" "}
+                        </div>
+                        <div className="model-btns">
+                            <button
+                                onClick={handleDialogClose}
+                                className="close-del">
+                                Close
+                            </button>
+                            <button
+                                onClick={(e) => handleConfirm()}
+                                className="modal-delbtn">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                )}
+                {deleteBulk && (
+                    <div className="modal-del">
+                        <div className="warn-text">
+                            Are you sure you want to delete ?{" "}
+                        </div>
+                        <div className="model-btns">
+                            <button onClick={handleBulkClose} className="close-del">
+                                Close
+                            </button>
+                            <button
+                                onClick={(e) => handleBulkConfirm()}
+                                className="modal-delbtn">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                )}
+                {showfilter && (
+                    <div className="filter">
+                        <strong className="yellow">Bulk Actions</strong>
 
-				{DataTable(
-					Pages,
-					columns,
-					"/pages/add",
-					"+  Add New Page",
-					"title",
-					() => onfilterClick()
-				)}
-			</div>
-		</div>
-	);
+                        <span>
+                            <strong>Edit</strong>
+                        </span>
+                        <span>
+                            <strong>Move to Trash</strong>
+                        </span>
+                    </div>
+                )}
+
+                <h1>Pages</h1>
+                <Pagefilter
+                    counts={countPages}
+                    onchange={(q) => fetchdata(q)}
+                />
+
+                {DataTable(
+                    Pages,
+                    columns,
+                    "/pages/add",
+                    "+  Add New Page",
+                    "title",
+                    () => onfilterClick()
+                )}
+            </div>
+        </div>
+    );
 }
 
 export default Pages;
