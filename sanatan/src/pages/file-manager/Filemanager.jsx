@@ -290,8 +290,8 @@ function FileManager() {
               <span className="tab-txt">Audio</span>
             </button>
             <button
-              className={fileType === "pdf" ? "tab-btn" : "tab-btn btnoutline"}
-              onClick={() => setfileType("pdf")}
+              className={fileType === "application" ? "tab-btn" : "tab-btn btnoutline"}
+              onClick={() => setfileType("application")}
             >
               <span className="tab-txt">Pdf</span>
             </button>

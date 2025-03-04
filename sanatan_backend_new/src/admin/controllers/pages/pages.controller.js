@@ -13,6 +13,7 @@ exports.getAllPages = async (req, res) => {
   }
 };
 // Find pages
+
 // exports.FindPages = asyncHandler(async (req, res) => {
 //   const type = req.query.type;
 
