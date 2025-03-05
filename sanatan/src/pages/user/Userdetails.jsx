@@ -16,12 +16,15 @@ function Userdetails() {
 				`${process.env.REACT_APP_SERVER}users/${id}`
 			);
 			setData(res.data);
-		} catch (error) {}
+		} catch (error) { }
 	}
-
 	useEffect(() => {
 		fetchdata();
-	}, []);
+	}, [id]);
+
+	if (!data) {
+		return <p>Loading user details...</p>; // Show loading until data is fetched
+	}
 	return (
 		<div>
 			<h1>User Details</h1>
@@ -29,7 +32,14 @@ function Userdetails() {
 			<div className="banner-container">
 				<div className="user-banner">
 					<div className="userpic-col">
-						<div className="userpic-in-banner"></div>
+						<div className="userpic-in-banner">
+							<img
+								src={data.userPic || "/default-user.png"} // Fallback image if userPic is empty
+								alt="User Pic"
+								className="userpic"
+								style={{ width: "100%", height: "100%", objectFit: "cover" }}
+							/>
+						</div>
 						<span>{data.fullName}</span>
 					</div>
 				</div>

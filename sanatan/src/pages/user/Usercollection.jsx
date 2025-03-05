@@ -12,42 +12,37 @@ function Usercollection({ id }) {
 			const res = await axios.get(Api);
 
 			Setdata(res.data);
-		} catch (error) {}
+		} catch (error) { }
 	}
 
 	useEffect(() => {
 		fetchdata();
 	}, []);
 
+	const stripHtml = (html) => html.replace(/<[^>]+>/g, "");
+
 	const columns = [
 		{
 			header: "No.",
-			cell: ({ row }) => {
-				console.log("no", row, row.index);
-				return row.index + 1;
-			},
+			cell: ({ row }) => row.index + 1,
 		},
-
 		{
 			header: "Name",
 			accessorKey: "itemName",
-			cell: (props) => props.getValue(),
+			cell: (props) => stripHtml(props.getValue() || ""),
 		},
-
 		{
 			header: "Category",
 			accessorKey: "category",
-			cell: (props) => props.getValue(),
+			cell: (props) => stripHtml(props.getValue() || ""),
 		},
-
 		{
 			header: "Status",
 			accessorKey: "status",
 			cell: (props) => props.getValue(),
 		},
-
-		// You can add more columns here if needed
 	];
+
 
 	return (
 		<div>

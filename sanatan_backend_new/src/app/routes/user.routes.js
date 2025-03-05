@@ -1,10 +1,14 @@
+const { S3Client } = require("@aws-sdk/client-s3");
+const multerS3 = require("multer-s3");
 const nodemailer = require("nodemailer");
+const S3_CONFIG = require("../../admin/config/s3.config");
 const crypto = require("crypto");
 const User = require("../models/users/users");
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 const verifyJWT = require("../middleware/verifyjwt");
 const ApiError = require("../utils/apierror");
 const ApiResponse = require("../utils/apiresponse");
@@ -67,15 +71,38 @@ router.post(
   })
 );
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "./files/user");
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname);
+const s3 = new S3Client({
+  region: S3_CONFIG.REGION,
+  credentials: {
+    accessKeyId: S3_CONFIG.ACCESS_KEY_ID,
+    secretAccessKey: S3_CONFIG.SECRET_ACCESS_KEY,
   },
 });
-const upload = multer({ storage: storage });
+
+const upload = multer({
+  storage: multerS3({
+    s3: s3,
+    bucket: S3_CONFIG.BUCKET,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: function (req, file, cb) {
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      const mimetype = file.mimetype.split("/");
+      const ext = `.${mimetype[1]}`;
+
+      const fullPath = `uploads/${uniqueSuffix}${ext}`;
+      cb(null, fullPath);
+    },
+  }),
+});
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, "./files/user");
+//   },
+//   filename: function (req, file, cb) {
+//     cb(null, Date.now() + "-" + file.originalname);
+//   },
+// });
+// const upload = multer({ storage: storage });
 
 const generateAccessAndRefereshTokens = async (userId) => {
   try {
@@ -185,83 +212,131 @@ const verifyOtp = asyncHandler(async (req, res) => {
 });
 
 // Route 4: Register User
+// const registerUser = asyncHandler(async (req, res) => {
+//   const { fullName, email, username, phone, password } = req.body;
+//   //console.log("email: ", email);
+
+//   if (
+//     [fullName, email, username, password, phone].some(
+//       (field) => field?.trim() === ""
+//     )
+//   ) {
+//     throw new ApiError(400, "All fields are required");
+//   }
+
+//   const existedUser = await User.findOne({
+//     $or: [{ email }, { phone }],
+//   });
+
+//   if (existedUser) {
+//     throw new ApiError(409, "User already exists");
+//   }
+//   //console.log(req.files);
+//   const existedUsername = await User.findOne({
+//     username,
+//   });
+
+//   if (existedUsername) {
+//     const userCount = await User.countDocuments();
+//     const serialNumber = userCount + 1;
+//     const newUsername = `${username.toLowerCase()}-${serialNumber}`;
+//     const user = await User.create({
+//       fullName: fullName,
+//       userPic: "",
+//       userId: `SD${serialNumber}`,
+//       email: email,
+//       phone: phone,
+//       password: password,
+//       username: newUsername.toString(),
+//       gender: "",
+//     });
+//     const createdUser = await User.findById(user._id).select(
+//       "-password -refreshToken"
+//     );
+
+//     if (!createdUser) {
+//       throw new ApiError(
+//         500,
+//         "Something went wrong while registering the user"
+//       );
+//     }
+
+//     return res
+//       .status(200)
+//       .json(new ApiResponse(200, createdUser, "User registered Successfully"));
+//   }
+//   const userCount = await User.countDocuments();
+//   const serialNumber = userCount + 1;
+//   const user = await User.create({
+//     fullName: fullName,
+//     userPic: "",
+//     userId: `SD${serialNumber}`,
+//     email: email,
+//     phone: phone,
+//     password: password,
+//     username: username,
+//     gender: "",
+//   });
+
+//   const createdUser = await User.findById(user._id).select(
+//     "-password -refreshToken"
+//   );
+
+//   if (!createdUser) {
+//     throw new ApiError(500, "Something went wrong while registering the user");
+//   }
+
+//   return res
+//     .status(200)
+//     .json(new ApiResponse(200, createdUser, "User registered Successfully"));
+// });
+
 const registerUser = asyncHandler(async (req, res) => {
   const { fullName, email, username, phone, password } = req.body;
-  //console.log("email: ", email);
 
-  if (
-    [fullName, email, username, password, phone].some(
-      (field) => field?.trim() === ""
-    )
-  ) {
+  if (![fullName, email, username, phone, password].every(Boolean)) {
     throw new ApiError(400, "All fields are required");
   }
 
-  const existedUser = await User.findOne({
-    $or: [{ email }, { phone }],
-  });
+  const userPic = req.file ? req.file.location : "";
+
+  const existedUser = await User.findOne({ $or: [{ email }, { phone }] });
 
   if (existedUser) {
     throw new ApiError(409, "User already exists");
   }
-  //console.log(req.files);
-  const existedUsername = await User.findOne({
-    username,
-  });
 
-  if (existedUsername) {
-    const userCount = await User.countDocuments();
-    const serialNumber = userCount + 1;
-    const newUsername = `${username.toLowerCase()}-${serialNumber}`;
+  const existedUsername = await User.findOne({ username });
+  const randomNumber = Math.floor(1000 + Math.random() * 90000);
+  const finalUsername = existedUsername
+    ? `${username.toLowerCase()}-${randomNumber}`
+    : username;
+
+  const userCount = await User.countDocuments();
+  const userId = `SD${userCount + 1}`;
+
+  try {
     const user = await User.create({
-      fullName: fullName,
-      userPic: "",
-      userId: `SD${serialNumber}`,
-      email: email,
-      phone: phone,
-      password: password,
-      username: newUsername.toString(),
+      fullName,
+      userPic,
+      userId,
+      email,
+      phone,
+      password,
+      username: finalUsername,
       gender: "",
     });
+
     const createdUser = await User.findById(user._id).select(
       "-password -refreshToken"
     );
 
-    if (!createdUser) {
-      throw new ApiError(
-        500,
-        "Something went wrong while registering the user"
-      );
-    }
-
     return res
-      .status(200)
-      .json(new ApiResponse(200, createdUser, "User registered Successfully"));
+      .status(201)
+      .json(new ApiResponse(201, createdUser, "User registered successfully"));
+  } catch (err) {
+    throw new ApiError(500, "Failed to create user: " + err.message);
   }
-  const userCount = await User.countDocuments();
-  const serialNumber = userCount + 1;
-  const user = await User.create({
-    fullName: fullName,
-    userPic: "",
-    userId: `SD${serialNumber}`,
-    email: email,
-    phone: phone,
-    password: password,
-    username: username,
-    gender: "",
-  });
-
-  const createdUser = await User.findById(user._id).select(
-    "-password -refreshToken"
-  );
-
-  if (!createdUser) {
-    throw new ApiError(500, "Something went wrong while registering the user");
-  }
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, createdUser, "User registered Successfully"));
 });
 
 // Route 5: Login User
@@ -468,7 +543,9 @@ const updateUserAvatar = async (req, res) => {
     .json(new ApiResponse(200, user, "User image updated successfully"));
 };
 
-router.route("/register").post(registerUser);
+// router.route("/register").post(registerUser);
+router.route("/register").post(upload.single("userPic"), registerUser);
+
 router.route("/send-otp").post(sendOtp);
 router.route("/verify-otp").post(verifyOtp);
 
