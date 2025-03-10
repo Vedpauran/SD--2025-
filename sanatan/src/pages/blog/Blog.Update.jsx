@@ -19,22 +19,22 @@ function UpdateBlog() {
 
 	const Api = `${process.env.REACT_APP_SERVER}blogs/${id}`;
 	// Fetch Categories and Subcategoeries
-	function fetchcategory() {
-		try {
-			const Api1 = `${process.env.REACT_APP_SERVER}c/categories/in/Blogs`;
-			axios
-				.get(Api1)
-				.then((res) => {
-					setloading(false);
-					Setcat(res.data);
-				})
-				.catch((e) => {
-					setloading(false);
-				});
-		} catch (error) {
-			setloading(false);
-		}
-	}
+	// function fetchcategory() {
+	// 	try {
+	// 		const Api1 = `${process.env.REACT_APP_SERVER}c/categories/in/Blogs`;
+	// 		axios
+	// 			.get(Api1)
+	// 			.then((res) => {
+	// 				setloading(false);
+	// 				Setcat(res.data);
+	// 			})
+	// 			.catch((e) => {
+	// 				setloading(false);
+	// 			});
+	// 	} catch (error) {
+	// 		setloading(false);
+	// 	}
+	// }
 	function fetchsubcategory(parent) {
 		try {
 			const Api2 = `${process.env.REACT_APP_SERVER}c/categories/sub/find/${parent}`;
@@ -43,8 +43,8 @@ function UpdateBlog() {
 				.then((res) => {
 					Setsubcat(res.data);
 				})
-				.catch((e) => {});
-		} catch (error) {}
+				.catch((e) => { });
+		} catch (error) { }
 	}
 	const [Langs, Setlangs] = useState([]);
 	function fetchLanguages() {
@@ -54,26 +54,53 @@ function UpdateBlog() {
 				.then((res) => {
 					Setlangs(res.data);
 				})
-				.catch((e) => {});
-		} catch (error) {}
+				.catch((e) => { });
+		} catch (error) { }
 	}
-	function fetchdata() {
+	// function fetchdata() {
+	// 	try {
+	// 		setloading(true);
+	// 		axios
+	// 			.get(Api)
+	// 			.then((res) => {
+	// 				setPage(res.data);
+	// 				setLanguages(res.data.Availability);
+	// 				fetchsubcategory(res.data.category);
+	// 			})
+	// 			.catch((e) => {});
+	// 	} catch (error) {}
+	// 	setloading(false);
+	// }
+	async function fetchdata() {
 		try {
 			setloading(true);
-			axios
-				.get(Api)
-				.then((res) => {
-					setPage(res.data);
-					setLanguages(res.data.Availability);
-					fetchsubcategory(res.data.category);
-				})
-				.catch((e) => {});
-		} catch (error) {}
-		setloading(false);
+			const response = await axios.get(Api);
+			setPage(response.data);
+
+			// Fetch categories
+			const category = await axios.get(
+				`${process.env.REACT_APP_SERVER}c/categories/in/Blogs`
+			);
+			Setcat(category.data);
+
+			// Fetch subcategories if a category is already selected
+			if (response.data.category) {
+				const matchedCategory = category.data.find(
+					(cat) => cat.Name === response.data.category
+				);
+				if (matchedCategory) {
+					await fetchsubcategory(matchedCategory._id);
+				}
+			}
+		} catch (error) {
+			console.error("Error fetching data:", error);
+		} finally {
+			setloading(false);
+		}
 	}
 
 	useEffect((async) => {
-		fetchcategory();
+		// fetchcategory();
 		fetchLanguages();
 		fetchdata();
 	}, []);
@@ -206,7 +233,7 @@ function UpdateBlog() {
 						}
 					})
 					.catch((error) => console.log(error));
-			} catch (error) {}
+			} catch (error) { }
 		}
 	}
 	const handleFileDelete = (arrayName, index) => {

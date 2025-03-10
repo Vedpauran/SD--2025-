@@ -41,8 +41,8 @@ function BlogContentUpdate() {
 					setPage(res.data);
 					Availblearray(res.data.Availablity);
 				})
-				.catch((e) => {});
-		} catch (error) {}
+				.catch((e) => { });
+		} catch (error) { }
 	}
 
 	useEffect(() => {
@@ -54,7 +54,7 @@ function BlogContentUpdate() {
 	const AddAvailablity = (id, value) => {
 		Availblearray({ ...AddAvailable, [id]: value });
 		setPage({ ...Page, Availablity: AddAvailable });
-		console.log(Page);
+		// console.log(Page);
 	};
 	function addorRemove(value) {
 		const index = Page.Media.indexOf(value); // Check if the value already exists in the AddLanguageay

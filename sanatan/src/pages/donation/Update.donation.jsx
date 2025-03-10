@@ -22,22 +22,22 @@ function UpdateDonation() {
 
 	const Api = `${process.env.REACT_APP_SERVER}donation/${id}`;
 	// Fetch Categories and Subcategoeries
-	function fetchcategory() {
-		try {
-			const Api1 = `${process.env.REACT_APP_SERVER}c/categories/in/Donation`;
-			axios
-				.get(Api1)
-				.then((res) => {
-					setloading(false);
-					Setcat(res.data);
-				})
-				.catch((e) => {
-					setloading(false);
-				});
-		} catch (error) {
-			setloading(false);
-		}
-	}
+	// function fetchcategory() {
+	// 	try {
+	// 		const Api1 = `${process.env.REACT_APP_SERVER}c/categories/in/Donation`;
+	// 		axios
+	// 			.get(Api1)
+	// 			.then((res) => {
+	// 				setloading(false);
+	// 				Setcat(res.data);
+	// 			})
+	// 			.catch((e) => {
+	// 				setloading(false);
+	// 			});
+	// 	} catch (error) {
+	// 		setloading(false);
+	// 	}
+	// }
 	function fetchsubcategory(parent) {
 		try {
 			const Api2 = `${process.env.REACT_APP_SERVER}c/categories/sub/find/${parent}`;
@@ -46,8 +46,8 @@ function UpdateDonation() {
 				.then((res) => {
 					Setsubcat(res.data);
 				})
-				.catch((e) => {});
-		} catch (error) {}
+				.catch((e) => { });
+		} catch (error) { }
 	}
 
 	function fetchLanguages() {
@@ -57,27 +57,55 @@ function UpdateDonation() {
 				.then((res) => {
 					Setlangs(res.data);
 				})
-				.catch((e) => {});
-		} catch (error) {}
+				.catch((e) => { });
+		} catch (error) { }
 	}
 
-	function fetchdata() {
+	// function fetchdata() {
+	// 	try {
+	// 		setloading(true);
+	// 		axios
+	// 			.get(Api)
+	// 			.then((res) => {
+	// 				setPage(res.data);
+	// 				setLanguages(res.data.Availability);
+	// 				fetchsubcategory(res.data.category);
+	// 			})
+	// 			.catch((e) => {});
+	// 	} catch (error) {}
+	// 	setloading(false);
+	// }
+
+	async function fetchdata() {
 		try {
 			setloading(true);
-			axios
-				.get(Api)
-				.then((res) => {
-					setPage(res.data);
-					setLanguages(res.data.Availability);
-					fetchsubcategory(res.data.category);
-				})
-				.catch((e) => {});
-		} catch (error) {}
-		setloading(false);
+			const response = await axios.get(Api);
+			setPage(response.data);
+
+			// Fetch categories
+			const category = await axios.get(
+				`${process.env.REACT_APP_SERVER}c/categories/in/Donation`
+			);
+			Setcat(category.data);
+
+			// Fetch subcategories if a category is already selected
+			if (response.data.category) {
+				const matchedCategory = category.data.find(
+					(cat) => cat.Name === response.data.category
+				);
+				if (matchedCategory) {
+					await fetchsubcategory(matchedCategory._id);
+				}
+			}
+		} catch (error) {
+			console.error("Error fetching data:", error);
+		} finally {
+			setloading(false);
+		}
 	}
 	useEffect((async) => {
 		fetchdata();
-		fetchcategory();
+		// fetchcategory();
 		fetchLanguages();
 	}, []);
 
@@ -211,7 +239,7 @@ function UpdateDonation() {
 						}
 					})
 					.catch((error) => console.log(error));
-			} catch (error) {}
+			} catch (error) { }
 		}
 	}
 
@@ -263,7 +291,7 @@ function UpdateDonation() {
 							name="subcategory">
 							<option value="">------</option>
 							{SubCat.map((op, index) => {
-								return <option value={op._id}>{op.Name}</option>;
+								return <option value={op.Name}>{op.Name}</option>;
 							})}
 						</select>
 					</div>

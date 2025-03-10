@@ -22,32 +22,27 @@ const getActiveContentsByLangId = asyncHandler(async (req, res) => {
       },
       {
         $match: {
-          $or: [{ publish: { $lt: new Date() } }, { publish: null }],
+          $or: [{ publish: { $lt: currentDate } }, { publish: null }],
         },
       },
       {
-        $set: {
+        $addFields: {
           availableLanguages: {
-            $ifNull: [
-              {
-                $map: {
-                  input: {
-                    $filter: {
-                      input: { $objectToArray: "$Availability" },
-                      cond: {
-                        $and: [
-                          { $eq: ["$$this.v.checked", true] },
-                          { $eq: ["$$this.v.value", "Available"] },
-                        ],
-                      },
-                    },
+            $map: {
+              input: {
+                $filter: {
+                  input: { $objectToArray: "$Availability" },
+                  cond: {
+                    $and: [
+                      { $eq: ["$$this.v.checked", true] },
+                      { $eq: ["$$this.v.value", "Available"] },
+                    ],
                   },
-                  as: "lang",
-                  in: "$$lang.k", // Extract language key
                 },
               },
-              [], // Default to empty array if null
-            ],
+              as: "lang",
+              in: "$$lang.k", // Extract the language key
+            },
           },
         },
       },
@@ -57,14 +52,16 @@ const getActiveContentsByLangId = asyncHandler(async (req, res) => {
         },
       },
       {
-        $set: {
+        $addFields: {
           availableLanguage: {
             $cond: [
               { $in: [langid, "$availableLanguages"] },
               langid,
               {
                 $cond: [
-                  { $in: ["$defaultLanguage", "$availableLanguages"] },
+                  {
+                    $in: ["$defaultLanguage", "$availableLanguages"],
+                  },
                   "$defaultLanguage",
                   { $first: "$availableLanguages" },
                 ],
@@ -82,10 +79,12 @@ const getActiveContentsByLangId = asyncHandler(async (req, res) => {
         },
       },
       {
-        $set: {
+        $addFields: {
           favr: {
             $cond: {
-              if: { $in: [req.user?._id, "$favr.user"] },
+              if: {
+                $in: [req.user?._id, "$favr.user"],
+              },
               then: true,
               else: false,
             },
@@ -102,7 +101,7 @@ const getActiveContentsByLangId = asyncHandler(async (req, res) => {
           pipeline: [
             {
               $match: {
-                $expr: { $eq: ["$Language", "$$availableLanguage"] },
+                $expr: { $eq: ["$Language", "$$availableLanguage"] }, // Use the variable in the match condition
               },
             },
             {
@@ -117,11 +116,16 @@ const getActiveContentsByLangId = asyncHandler(async (req, res) => {
       },
     ]);
 
-    res
-      .status(200)
-      .json(new ApiResponse(200, { contents }, "Pages fetched Successfully"));
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          contents,
+        },
+        "Pages fetched Successfully"
+      )
+    );
   } catch (error) {
-    console.error("Error in getActiveContentsByLangId:", error);
     res.status(500).json({ message: error.message });
   }
 });

@@ -323,7 +323,7 @@ router.post("/add/content", async (req, res) => {
   }
 });
 
-router.put("/content/:id", async (req, res) => {
+router.put("/edit/:id", async (req, res) => {
   const _id = req.params.id;
   try {
     const DonationUpdate = await DonationContent.findByIdAndUpdate(

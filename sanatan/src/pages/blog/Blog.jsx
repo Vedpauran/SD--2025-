@@ -24,7 +24,7 @@ function Blog() {
 				console.log(response.data);
 				Setdata(response.data.activeBlogs);
 				setCountPages(response.data.totals);
-			} catch (error) {}
+			} catch (error) { }
 		})();
 	}
 
@@ -125,9 +125,7 @@ function Blog() {
 							<img src="/icons/svg/Edit.svg" />
 						</button>
 					</Link>
-					<button className="abtn view">
-						<img src="/icons/svg/view.svg" />
-					</button>
+
 					<button
 						onClick={() => handleClick(props.getValue())}
 						className="abtn del">
@@ -152,8 +150,8 @@ function Blog() {
 				.then((res) => {
 					fetchdata("");
 				})
-				.catch((error) => {});
-		} catch (error) {}
+				.catch((error) => { });
+		} catch (error) { }
 		setOpen(false);
 	};
 
@@ -170,8 +168,8 @@ function Blog() {
 				.then((res) => {
 					fetchdata("");
 				})
-				.catch((error) => {});
-		} catch (error) {}
+				.catch((error) => { });
+		} catch (error) { }
 		setdeleteBulk(false);
 	};
 	const onfilterClick = () => {

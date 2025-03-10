@@ -35,8 +35,8 @@ function Adddonation() {
 				.then((res) => {
 					Setsubcat(res.data);
 				})
-				.catch((e) => {});
-		} catch (error) {}
+				.catch((e) => { });
+		} catch (error) { }
 	}
 	const [Langs, Setlangs] = useState([]);
 	function fetchLanguages() {
@@ -46,8 +46,8 @@ function Adddonation() {
 				.then((res) => {
 					Setlangs(res.data);
 				})
-				.catch((e) => {});
-		} catch (error) {}
+				.catch((e) => { });
+		} catch (error) { }
 	}
 	const handleFileDelete = (arrayName, index) => {
 		setPage((prevPage) => {
@@ -441,7 +441,7 @@ function Adddonation() {
 					type={"array"}
 				/>
 			</div>
-			{/* <LanguageDropDownComponent
+			<LanguageDropDownComponent
 				items={Langs}
 				setLanguages={setLanguages}
 				languages={languages}
@@ -450,7 +450,7 @@ function Adddonation() {
 					setPage({ ...Page, defaultLanguage: value })
 				}
 				defaultLanguage={Page.defaultLanguage}
-			/> */}
+			/>
 			<div className="center mb-10">
 				<button className="addButton" onClick={submitHandler}>
 					Submit

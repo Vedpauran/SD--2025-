@@ -230,6 +230,7 @@ const getDonationContent = asyncHandler(async (req, res) => {
 
 // ✅ Routes
 router.route("/contents/:langid").get(getActiveContentsByLangId);
+
 router.route("/donation-history").get(verifyJWT, getUserInvoices);
 router.route("/donate/invoice").post(verifyJWT, makeDonationInvoice);
 router.route("/content/:id").get(getDonationContent);

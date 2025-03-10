@@ -25,7 +25,7 @@ function Donations() {
 
 				Setdata(response.data.activeDonations);
 				setCountPages(response.data.totals);
-			} catch (error) {}
+			} catch (error) { }
 		})();
 	}
 
@@ -124,9 +124,7 @@ function Donations() {
 							<img src="/icons/svg/Edit.svg" />
 						</button>
 					</Link>
-					<button className="abtn view">
-						<img src="/icons/svg/view.svg" />
-					</button>
+
 					<button
 						onClick={() => handleClick(props.getValue())}
 						className="abtn del">
@@ -152,8 +150,8 @@ function Donations() {
 				.then((res) => {
 					fetchdata();
 				})
-				.catch((error) => {});
-		} catch (error) {}
+				.catch((error) => { });
+		} catch (error) { }
 		setOpen(false);
 	};
 
@@ -170,8 +168,8 @@ function Donations() {
 				.then((res) => {
 					fetchdata();
 				})
-				.catch((error) => {});
-		} catch (error) {}
+				.catch((error) => { });
+		} catch (error) { }
 		setdeleteBulk(false);
 	};
 	const onfilterClick = () => {

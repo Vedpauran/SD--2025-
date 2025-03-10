@@ -35,8 +35,8 @@ function Addblog() {
 				.then((res) => {
 					Setsubcat(res.data);
 				})
-				.catch((e) => {});
-		} catch (error) {}
+				.catch((e) => { });
+		} catch (error) { }
 	}
 	const [Langs, Setlangs] = useState([]);
 	function fetchLanguages() {
@@ -46,8 +46,8 @@ function Addblog() {
 				.then((res) => {
 					Setlangs(res.data);
 				})
-				.catch((e) => {});
-		} catch (error) {}
+				.catch((e) => { });
+		} catch (error) { }
 	}
 
 	useEffect(() => {
@@ -94,6 +94,7 @@ function Addblog() {
 		title: "",
 		image: "",
 		banner: "",
+		innerimage: [],
 		Availability: {},
 		Languages: [],
 		defaultLanguage: "",
@@ -410,7 +411,7 @@ function Addblog() {
 					type={"array"}
 				/>
 			</div>
-			{/* <LanguageDropDownComponent
+			<LanguageDropDownComponent
 				items={Langs}
 				setLanguages={setLanguages}
 				languages={languages}
@@ -419,7 +420,7 @@ function Addblog() {
 					setPage({ ...Page, defaultLanguage: value })
 				}
 				defaultLanguage={Page.defaultLanguage}
-			/> */}
+			/>
 			<div className="center mb-10">
 				<button className="addButton" onClick={submitHandler}>
 					Submit
