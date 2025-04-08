@@ -10,6 +10,7 @@ const Scripture2 = require("../../admin/models/pages/sricptures2");
 const Aarti = require("../../admin/models/pages/aarti");
 const Blog = require("../../admin/models/pages/pageblog");
 const Extra = require("../../admin/models/pages/extra");
+const Table = require("../../admin/models/pages/tableStyle");
 
 // Mapping of pagestyles to models
 const pageStyleModels = {
@@ -19,6 +20,7 @@ const pageStyleModels = {
   aarti: Aarti,
   blog: Blog,
   extra: Extra,
+  table: Table,
 };
 
 // ✅ API to Get a Single Page with Pagestyle Data
