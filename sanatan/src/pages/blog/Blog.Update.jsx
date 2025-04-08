@@ -67,8 +67,8 @@ function UpdateBlog() {
 	// 				setLanguages(res.data.Availability);
 	// 				fetchsubcategory(res.data.category);
 	// 			})
-	// 			.catch((e) => {});
-	// 	} catch (error) {}
+	// 			.catch((e) => { });
+	// 	} catch (error) { }
 	// 	setloading(false);
 	// }
 	async function fetchdata() {
@@ -76,7 +76,7 @@ function UpdateBlog() {
 			setloading(true);
 			const response = await axios.get(Api);
 			setPage(response.data);
-
+			setLanguages(response.data.Availability);
 			// Fetch categories
 			const category = await axios.get(
 				`${process.env.REACT_APP_SERVER}c/categories/in/Blogs`
@@ -161,12 +161,21 @@ function UpdateBlog() {
 		}
 	};
 
-	const Dropselect = (e) => {
-		setPage({ ...Page, category: e.target.value });
-		const matchedCategory = Cat.find(
-			(category) => category.Name === e.target.value
-		);
-		fetchsubcategory(matchedCategory._id);
+	// const Dropselect = (e) => {
+	// 	setPage({ ...Page, category: e.target.value });
+	// 	const matchedCategory = Cat.find(
+	// 		(category) => category.Name === e.target.value
+	// 	);
+	// 	fetchsubcategory(matchedCategory._id);
+	// };
+	const Dropselect = async (e) => {
+		const selectedCategory = e.target.value;
+		setPage({ ...Page, category: selectedCategory });
+
+		const matchedCategory = Cat.find((category) => category.Name === selectedCategory);
+		if (matchedCategory) {
+			await fetchsubcategory(matchedCategory._id);
+		}
 	};
 
 	async function pageRedirector(language) {
@@ -275,7 +284,7 @@ function UpdateBlog() {
 					<div className="drop-col">
 						{" "}
 						<span className="drop-lable">Select Sub Category</span>
-						<select
+						{/* <select
 							className="drop"
 							onChange={inputHandler}
 							value={Page.subcategory}
@@ -284,6 +293,19 @@ function UpdateBlog() {
 							{SubCat.map((op, index) => {
 								return <option value={op.Name}>{op.Name}</option>;
 							})}
+						</select> */}
+						<select
+							className="drop"
+							onChange={inputHandler}
+							value={Page.subcategory}
+							name="subcategory"
+						>
+							<option value="">------</option>
+							{SubCat.map((op) => (
+								<option key={op._id} value={op.Name}>
+									{op.Name}
+								</option>
+							))}
 						</select>
 					</div>
 					<div className="drop-col">
@@ -455,7 +477,7 @@ function UpdateBlog() {
 					type={"array"}
 				/>
 			</div>
-			{/* <LanguageDropDownComponent
+			<LanguageDropDownComponent
 				items={Langs}
 				setLanguages={setLanguages}
 				languages={languages}
@@ -464,7 +486,7 @@ function UpdateBlog() {
 					setPage({ ...Page, defaultLanguage: value })
 				}
 				defaultLanguage={Page.defaultLanguage}
-			/> */}
+			/>
 			<div className="center mb-10">
 				<button className="addButton" onClick={submitHandler}>
 					Submit

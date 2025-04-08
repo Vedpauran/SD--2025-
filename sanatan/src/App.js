@@ -84,395 +84,324 @@ import MenuBuilder from "./pages/menu/MenuBuilder";
 import ViewPage from "./pages/page/View.page";
 import AddNotificationContent from "./pages/notification/AddNotificationContent";
 import UpdateNotificationContent from "./pages/notification/UpdateNotificationContent";
+import Tablecontent from "./pages/page/pagestyles/table/Table";
+import Tablecontentupdate from "./pages/page/pagestyles/table/Table.update";
+import Chalisacontent from "./pages/page/pagestyles/chalisa/chalisa";
+import Chalisacontentupdate from "./pages/page/pagestyles/chalisa/chalisa.update";
 
 export default function App() {
-	const accessToken = localStorage.getItem("accessToken");
-	const refreshToken = localStorage.getItem("refreshToken");
-	if (
-		accessToken === undefined ||
-		accessToken === null ||
-		!accessToken
-	) {
-		return <Login />;
-	}
-	axios.defaults.headers.common[
-		"Authorization"
-	] = `Bearer ${accessToken}`;
-	axios.defaults.headers.post["Content-Type"] = "application/json";
-	axios.interceptors.request.use(
-		(request) => {
-			return request;
-		},
-		(error) => {
-			//  console.log(error);
-			return Promise.reject(error);
-		}
-	);
-	axios.interceptors.response.use(
-		(response) => response,
-		async (error) => {
-			const originalRequest = error.config;
+  const accessToken = localStorage.getItem("accessToken");
+  const refreshToken = localStorage.getItem("refreshToken");
+  if (accessToken === undefined || accessToken === null || !accessToken) {
+    return <Login />;
+  }
+  axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
+  axios.defaults.headers.post["Content-Type"] = "application/json";
+  axios.interceptors.request.use(
+    (request) => {
+      return request;
+    },
+    (error) => {
+      //  console.log(error);
+      return Promise.reject(error);
+    }
+  );
+  axios.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      const originalRequest = error.config;
 
-			// If the error status is 401 and there is no originalRequest._retry flag,
-			// it means the token has expired and we need to refresh it
-			if (error.response.status === 401 && !originalRequest._retry) {
-				originalRequest._retry = true;
+      // If the error status is 401 and there is no originalRequest._retry flag,
+      // it means the token has expired and we need to refresh it
+      if (error.response.status === 401 && !originalRequest._retry) {
+        originalRequest._retry = true;
 
-				try {
-					localStorage.removeItem("accessToken");
-					localStorage.removeItem("refreshToken");
-					window.location.reload();
-				} catch (error) {
-					// Handle refresh token error or redirect to login
-					localStorage.removeItem("accessToken");
-					localStorage.removeItem("refreshToken");
-					window.location.reload();
-				}
-			}
-		}
-	);
-	return (
-		<BrowserRouter>
-			<>
-				<Navbar />
-				<div className="body-wrapper">
-					<Sidebar />
-					<div className="main">
-						<Routes>
-							<Route path="/" element={<Dashboard />}></Route>
-							{/* Languages Paths */}
+        try {
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("refreshToken");
+          window.location.reload();
+        } catch (error) {
+          // Handle refresh token error or redirect to login
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("refreshToken");
+          window.location.reload();
+        }
+      }
+    }
+  );
+  return (
+    <BrowserRouter>
+      <>
+        <Navbar />
+        <div className="body-wrapper">
+          <Sidebar />
+          <div className="main">
+            <Routes>
+              <Route path="/" element={<Dashboard />}></Route>
+              {/* Languages Paths */}
 
-							<Route
-								exact
-								path="/languages"
-								element={<Languages />}
-							/>
-							<Route
-								exact
-								path="/languages/add"
-								element={<Addlang />}
-							/>
-							<Route
-								exact
-								path="/languages/edit/:id"
-								element={<LanguageUpdate />}
-							/>
-							<Route
-								exact
-								path="/applanguages/"
-								element={<AppLanguages />}
-							/>
-							<Route
-								exact
-								path="/applanguages/add"
-								element={<AddApplang />}
-							/>
-							<Route
-								exact
-								path="/applanguages/edit/:id"
-								element={<AppLanguageUpdate />}
-							/>
+              <Route exact path="/languages" element={<Languages />} />
+              <Route exact path="/languages/add" element={<Addlang />} />
+              <Route
+                exact
+                path="/languages/edit/:id"
+                element={<LanguageUpdate />}
+              />
+              <Route exact path="/applanguages/" element={<AppLanguages />} />
+              <Route exact path="/applanguages/add" element={<AddApplang />} />
+              <Route
+                exact
+                path="/applanguages/edit/:id"
+                element={<AppLanguageUpdate />}
+              />
 
-							{/*    Category Paths */}
+              {/*    Category Paths */}
 
-							<Route
-								exact
-								path="/category"
-								element={<MainCategory />}
-							/>
-							<Route
-								exact
-								path="/category/subcategory/:parent"
-								element={<SubCategory />}
-							/>
-							<Route
-								exact
-								path="/category/add/subcategory"
-								element={<AddSubCategory />}
-							/>
-							<Route
-								exact
-								path="/category/add/main"
-								element={<AddMainCategory />}
-							/>
-							<Route
-								exact
-								path="/category/edit/:id"
-								element={<MainCategoryUpdate />}
-							/>
-							<Route
-								exact
-								path="/category/subcategory/edit/:id/:parent"
-								element={<SubCategoryUpdate />}
-							/>
-							<Route
-								exact
-								path="/category/add/innercategory"
-								element={<AddInnerCategory />}
-							/>
+              <Route exact path="/category" element={<MainCategory />} />
+              <Route
+                exact
+                path="/category/subcategory/:parent"
+                element={<SubCategory />}
+              />
+              <Route
+                exact
+                path="/category/add/subcategory"
+                element={<AddSubCategory />}
+              />
+              <Route
+                exact
+                path="/category/add/main"
+                element={<AddMainCategory />}
+              />
+              <Route
+                exact
+                path="/category/edit/:id"
+                element={<MainCategoryUpdate />}
+              />
+              <Route
+                exact
+                path="/category/subcategory/edit/:id/:parent"
+                element={<SubCategoryUpdate />}
+              />
+              <Route
+                exact
+                path="/category/add/innercategory"
+                element={<AddInnerCategory />}
+              />
 
-							{/* Pages Paths */}
+              {/* Pages Paths */}
 
-							<Route exact path="/pages" element={<Pages />} />
-							<Route
-								exact
-								path="/pages/availability/:id"
-								element={<AddAvailability />}
-							/>
-							<Route exact path="/pages/add" element={<AddPage />} />
-							<Route
-								exact
-								path="/pages/add/scripture/:id/:lang"
-								element={<Scripturecontent />}
-							/>
+              <Route exact path="/pages" element={<Pages />} />
+              <Route
+                exact
+                path="/pages/availability/:id"
+                element={<AddAvailability />}
+              />
+              <Route exact path="/pages/add" element={<AddPage />} />
+              <Route
+                exact
+                path="/pages/add/scripture/:id/:lang"
+                element={<Scripturecontent />}
+              />
+              <Route
+                exact
+                path="/pages/edit/scripture/:id/:lang"
+                element={<UpdateScripturecontent />}
+              />
+              <Route
+                exact
+                path="/pages/add/scripture2/:id/:lang"
+                element={<Scripture2content />}
+              />
 
-							<Route
-								exact
-								path="/pages/edit/scripture/:id/:lang"
-								element={<UpdateScripturecontent />}
-							/>
-							<Route
-								exact
-								path="/pages/add/scripture2/:id/:lang"
-								element={<Scripture2content />}
-							/>
+              <Route
+                exact
+                path="/pages/edit/scripture2/:id/:lang"
+                element={<UpdateScripture2content />}
+              />
+              <Route
+                exact
+                path="/pages/add/aarti/:id/:lang"
+                element={<Aarticontent />}
+              />
+              <Route
+                exact
+                path="/pages/add/table/:id/:lang"
+                element={<Tablecontent />}
+              />
+              <Route
+                exact
+                path="/pages/add/chalisa/:id/:lang"
+                element={<Chalisacontent />}
+              />
+              <Route
+                exact
+                path="/pages/add/temple/:id/:lang"
+                element={<Templecontent />}
+              />
+              <Route
+                exact
+                path="/pages/add/extra/:id/:lang"
+                element={<ExtraPagecontent />}
+              />
+              <Route
+                exact
+                path="/pages/add/blog/:id/:lang"
+                element={<Blogpagecontent />}
+              />
+              <Route
+                exact
+                path="/pages/edit/aarti/:id/:lang"
+                element={<Aarticontentupdate />}
+              />
+              <Route
+                exact
+                path="/pages/edit/table/:id/:lang"
+                element={<Tablecontentupdate />}
+              />
+              <Route
+                exact
+                path="/pages/edit/chalisa/:id/:lang"
+                element={<Chalisacontentupdate />}
+              />
+              <Route
+                exact
+                path="/pages/edit/temple/:id/:lang"
+                element={<Templecontentupdate />}
+              />
+              <Route
+                exact
+                path="/pages/edit/extra/:id/:lang"
+                element={<ExtraPagecontentupdate />}
+              />
+              <Route
+                exact
+                path="/pages/edit/blog/:id/:lang"
+                element={<Blogpagecontentupdate />}
+              />
+              <Route exact path="/pages/edit/:id" element={<UpdatePage />} />
+              <Route exact path="/pages/view/:id" element={<ViewPage />} />
 
-							<Route
-								exact
-								path="/pages/edit/scripture2/:id/:lang"
-								element={<UpdateScripture2content />}
-							/>
-							<Route
-								exact
-								path="/pages/add/aarti/:id/:lang"
-								element={<Aarticontent />}
-							/>
-							<Route
-								exact
-								path="/pages/add/temple/:id/:lang"
-								element={<Templecontent />}
-							/>
-							<Route
-								exact
-								path="/pages/add/extra/:id/:lang"
-								element={<ExtraPagecontent />}
-							/>
-							<Route
-								exact
-								path="/pages/add/blog/:id/:lang"
-								element={<Blogpagecontent />}
-							/>
-							<Route
-								exact
-								path="/pages/edit/aarti/:id/:lang"
-								element={<Aarticontentupdate />}
-							/>
-							<Route
-								exact
-								path="/pages/edit/temple/:id/:lang"
-								element={<Templecontentupdate />}
-							/>
-							<Route
-								exact
-								path="/pages/edit/extra/:id/:lang"
-								element={<ExtraPagecontentupdate />}
-							/>
-							<Route
-								exact
-								path="/pages/edit/blog/:id/:lang"
-								element={<Blogpagecontentupdate />}
-							/>
-							<Route
-								exact
-								path="/pages/edit/:id"
-								element={<UpdatePage />}
-							/>
-							<Route
-								exact
-								path="/pages/view/:id"
-								element={<ViewPage />}
-							/>
+              {/* Blogs Paths */}
 
-							{/* Blogs Paths */}
+              <Route exact path="/blogs" element={<Blog />} />
+              <Route exact path="/blogs/add" element={<Addblog />} />
+              <Route
+                exact
+                path="/blogs/add/content/:id/:lang"
+                element={<Blogcontent />}
+              />
+              <Route
+                exact
+                path="/blogs/edit/content/:id/:lang"
+                element={<BlogContentUpdate />}
+              />
+              <Route exact path="/blogs/edit/:id" element={<UpdateBlog />} />
 
-							<Route exact path="/blogs" element={<Blog />} />
-							<Route exact path="/blogs/add" element={<Addblog />} />
-							<Route
-								exact
-								path="/blogs/add/content/:id/:lang"
-								element={<Blogcontent />}
-							/>
-							<Route
-								exact
-								path="/blogs/edit/content/:id/:lang"
-								element={<BlogContentUpdate />}
-							/>
-							<Route
-								exact
-								path="/blogs/edit/:id"
-								element={<UpdateBlog />}
-							/>
+              {/* Donation & Invoices Paths */}
 
-							{/* Donation & Invoices Paths */}
+              <Route exact path="/donations" element={<Donations />} />
+              <Route exact path="/donations/add" element={<Adddonation />} />
+              <Route
+                exact
+                path="/donations/add/content/:id/:lang"
+                element={<Donationcontent />}
+              />
+              <Route
+                exact
+                path="/donations/edit/content/:id/:lang"
+                element={<UpdateDonationcontent />}
+              />
+              <Route
+                exact
+                path="/donations/edit/:id"
+                element={<Updatedonation />}
+              />
+              <Route
+                exact
+                path="/donation/category"
+                element={<Catdonation />}
+              />
+              <Route
+                exact
+                path="/donations/category/add"
+                element={<Adddonationcat />}
+              />
+              <Route exact path="/invoices" element={<Invoices />} />
+              <Route exact path="/invoices/add" element={<Viewinvoice />} />
+              <Route exact path="/menubuilder" element={<MenuBuilder />} />
 
-							<Route
-								exact
-								path="/donations"
-								element={<Donations />}
-							/>
-							<Route
-								exact
-								path="/donations/add"
-								element={<Adddonation />}
-							/>
-							<Route
-								exact
-								path="/donations/add/content/:id/:lang"
-								element={<Donationcontent />}
-							/>
-							<Route
-								exact
-								path="/donations/edit/content/:id/:lang"
-								element={<UpdateDonationcontent />}
-							/>
-							<Route
-								exact
-								path="/donations/edit/:id"
-								element={<Updatedonation />}
-							/>
-							<Route
-								exact
-								path="/donation/category"
-								element={<Catdonation />}
-							/>
-							<Route
-								exact
-								path="/donations/category/add"
-								element={<Adddonationcat />}
-							/>
-							<Route exact path="/invoices" element={<Invoices />} />
-							<Route
-								exact
-								path="/invoices/add"
-								element={<Viewinvoice />}
-							/>
-							<Route
-								exact
-								path="/menubuilder"
-								element={<MenuBuilder />}
-							/>
+              {/* Other Paths */}
 
-							{/* Other Paths */}
+              <Route exact path="/pagestyle" element={<PageStyles />} />
+              <Route exact path="/cardstyle" element={<CardStyle />} />
+              <Route exact path="/socialmedia" element={<Socialmedia />} />
+              <Route exact path="/feedback" element={<Feedback />} />
+              <Route
+                exact
+                path="/feedback/details"
+                element={<Feedbackinfo />}
+              />
+              <Route exact path="/faq" element={<Faqs />} />
+              <Route exact path="/faq/add" element={<AddFaq />} />
+              <Route exact path="/faq/edit/:id" element={<UpdateFaq />} />
+              <Route
+                exact
+                path="/faq/add/content/:id/:lang"
+                element={<AddFaqContent />}
+              />
+              <Route
+                exact
+                path="/faq/edit/content/:id/:lang"
+                element={<UpdateFaqContent />}
+              />
 
-							<Route
-								exact
-								path="/pagestyle"
-								element={<PageStyles />}
-							/>
-							<Route
-								exact
-								path="/cardstyle"
-								element={<CardStyle />}
-							/>
-							<Route
-								exact
-								path="/socialmedia"
-								element={<Socialmedia />}
-							/>
-							<Route exact path="/feedback" element={<Feedback />} />
-							<Route
-								exact
-								path="/feedback/details"
-								element={<Feedbackinfo />}
-							/>
-							<Route exact path="/faq" element={<Faqs />} />
-							<Route exact path="/faq/add" element={<AddFaq />} />
-							<Route
-								exact
-								path="/faq/edit/:id"
-								element={<UpdateFaq />}
-							/>
-							<Route
-								exact
-								path="/faq/add/content/:id/:lang"
-								element={<AddFaqContent />}
-							/>
-							<Route
-								exact
-								path="/faq/edit/content/:id/:lang"
-								element={<UpdateFaqContent />}
-							/>
+              {/* Users Routes */}
 
-							{/* Users Routes */}
+              <Route exact path="/users" element={<Users />} />
+              <Route exact path="/users/view/:id" element={<Userdetails />} />
 
-							<Route exact path="/users" element={<Users />} />
-							<Route
-								exact
-								path="/users/view/:id"
-								element={<Userdetails />}
-							/>
-
-							<Route
-								exact
-								path="/herobanner"
-								element={<HeroBanner />}
-							/>
-							<Route
-								exact
-								path="/herobanner/add"
-								element={<AddBanner />}
-							/>
-							<Route
-								exact
-								path="/herobanner/edit/:id"
-								element={<UpdateBanner />}
-							/>
-							<Route exact path="/whatsnew" element={<Whatsnew />} />
-							<Route
-								exact
-								path="/whatsnew/add"
-								element={<AddNew />}
-							/>
-							<Route
-								exact
-								path="/whatsnew/edit/:id"
-								element={<UpadateWhatsNew />}
-							/>
-							<Route
-								exact
-								path="/notification"
-								element={<Notification />}
-							/>
-							<Route
-								exact
-								path="/notification/add"
-								element={<AddNotification />}
-							/>
-							<Route
-								exact
-								path="/notification/edit/content/:id/:lang"
-								element={<UpdateNotificationContent />}
-							/>
-							<Route
-								exact
-								path="/notification/add/content/:id/:lang"
-								element={<AddNotificationContent />}
-							/>
-							<Route
-								exact
-								path="/notification/edit/:id"
-								element={<UpdateNotification />}
-							/>
-							<Route
-								exact
-								path="/filemanager"
-								element={<FileManager />}
-							/>
-							<Route exact path="/authpage" element={<Admins />} />
-						</Routes>
-					</div>
-				</div>
-			</>
-		</BrowserRouter>
-	);
+              <Route exact path="/herobanner" element={<HeroBanner />} />
+              <Route exact path="/herobanner/add" element={<AddBanner />} />
+              <Route
+                exact
+                path="/herobanner/edit/:id"
+                element={<UpdateBanner />}
+              />
+              <Route exact path="/whatsnew" element={<Whatsnew />} />
+              <Route exact path="/whatsnew/add" element={<AddNew />} />
+              <Route
+                exact
+                path="/whatsnew/edit/:id"
+                element={<UpadateWhatsNew />}
+              />
+              <Route exact path="/notification" element={<Notification />} />
+              <Route
+                exact
+                path="/notification/add"
+                element={<AddNotification />}
+              />
+              <Route
+                exact
+                path="/notification/edit/content/:id/:lang"
+                element={<UpdateNotificationContent />}
+              />
+              <Route
+                exact
+                path="/notification/add/content/:id/:lang"
+                element={<AddNotificationContent />}
+              />
+              <Route
+                exact
+                path="/notification/edit/:id"
+                element={<UpdateNotification />}
+              />
+              <Route exact path="/filemanager" element={<FileManager />} />
+              <Route exact path="/authpage" element={<Admins />} />
+            </Routes>
+          </div>
+        </div>
+      </>
+    </BrowserRouter>
+  );
 }

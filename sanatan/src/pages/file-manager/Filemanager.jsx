@@ -147,11 +147,11 @@ function FileManager() {
       "3gp", "3g2", "f4v", "mpeg", "mpg", "ts", "mts", "m2ts",
       "rm", "rmvb", "asf"
     ];
-
     const audioExtensions = [
       "mp3", "mp4", "wav", "aac", "ogg", "flac", "wma", "m4a", "aiff",
       "alac", "opus", "amr", "pcm", "mid", "midi"
     ];
+    const pdfExtensions = ["pdf"];  // ➜ Added PDF support
 
     const fileExtension = fileName.split(".").pop().toLowerCase();
 
@@ -160,7 +160,7 @@ function FileManager() {
         <Imagecomponent
           filepath={filepath}
           OrignalName={fileName}
-          onDelete={(e) => openDeleteModal(id)}
+          onDelete={() => openDeleteModal(id)}
           isImage="true"
         />
       );
@@ -169,7 +169,7 @@ function FileManager() {
         <Imagecomponent
           filepath={filepath}
           OrignalName={fileName}
-          onDelete={(e) => openDeleteModal(id)}
+          onDelete={() => openDeleteModal(id)}
           isImage="video"
         />
       );
@@ -178,8 +178,17 @@ function FileManager() {
         <Imagecomponent
           filepath={filepath}
           OrignalName={fileName}
-          onDelete={(e) => openDeleteModal(id)}
+          onDelete={() => openDeleteModal(id)}
           isImage="audio"
+        />
+      );
+    } else if (pdfExtensions.includes(fileExtension)) {
+      return (
+        <Imagecomponent
+          filepath={filepath}
+          OrignalName={fileName}
+          onDelete={() => openDeleteModal(id)}
+          isImage="pdf"  // ➜ Pass PDF type
         />
       );
     } else {
@@ -187,12 +196,13 @@ function FileManager() {
         <Imagecomponent
           filepath={filepath}
           OrignalName={fileName}
-          onDelete={(e) => openDeleteModal(id)}
+          onDelete={() => openDeleteModal(id)}
           isImage="false"
         />
       );
     }
   };
+
   const [dragActive, setDragActive] = useState(false);
 
   const handleDragOver = (e) => {

@@ -71,8 +71,8 @@ function UpdateDonation() {
 	// 				setLanguages(res.data.Availability);
 	// 				fetchsubcategory(res.data.category);
 	// 			})
-	// 			.catch((e) => {});
-	// 	} catch (error) {}
+	// 			.catch((e) => { });
+	// 	} catch (error) { }
 	// 	setloading(false);
 	// }
 
@@ -81,7 +81,7 @@ function UpdateDonation() {
 			setloading(true);
 			const response = await axios.get(Api);
 			setPage(response.data);
-
+			setLanguages(response.data.Availability);
 			// Fetch categories
 			const category = await axios.get(
 				`${process.env.REACT_APP_SERVER}c/categories/in/Donation`
@@ -166,13 +166,23 @@ function UpdateDonation() {
 		}
 	};
 
-	const Dropselect = (e) => {
-		setPage({ ...Page, category: e.target.value });
-		const matchedCategory = Cat.find(
-			(category) => category.Name === e.target.value
-		);
-		fetchsubcategory(matchedCategory._id);
+	// const Dropselect = (e) => {
+	// 	setPage({ ...Page, category: e.target.value });
+	// 	const matchedCategory = Cat.find(
+	// 		(category) => category.Name === e.target.value
+	// 	);
+	// 	fetchsubcategory(matchedCategory._id);
+	// };
+	const Dropselect = async (e) => {
+		const selectedCategory = e.target.value;
+		setPage({ ...Page, category: selectedCategory });
+
+		const matchedCategory = Cat.find((category) => category.Name === selectedCategory);
+		if (matchedCategory) {
+			await fetchsubcategory(matchedCategory._id);
+		}
 	};
+
 	async function pageRedirector(language) {
 		if (Page.category === "" || Page.title === "") {
 			const notify = () =>
@@ -284,15 +294,28 @@ function UpdateDonation() {
 					<div className="drop-col">
 						{" "}
 						<span className="drop-lable">Select Sub Category</span>
-						<select
+						{/* <select
 							className="drop"
 							onChange={inputHandler}
 							value={Page.subcategory}
 							name="subcategory">
 							<option value="">------</option>
 							{SubCat.map((op, index) => {
-								return <option value={op.Name}>{op.Name}</option>;
+								return <option value={op._id}>{op.Name}</option>;
 							})}
+						</select> */}
+						<select
+							className="drop"
+							onChange={inputHandler}
+							value={Page.subcategory}
+							name="subcategory"
+						>
+							<option value="">------</option>
+							{SubCat.map((op) => (
+								<option key={op._id} value={op.Name}>
+									{op.Name}
+								</option>
+							))}
 						</select>
 					</div>
 					<div className="drop-col">
@@ -474,7 +497,7 @@ function UpdateDonation() {
 					type={"array"}
 				/>
 			</div>
-			{/* <LanguageDropDownComponent
+			<LanguageDropDownComponent
 				items={Langs}
 				setLanguages={setLanguages}
 				languages={languages}
@@ -483,7 +506,7 @@ function UpdateDonation() {
 					setPage({ ...Page, defaultLanguage: value })
 				}
 				defaultLanguage={Page.defaultLanguage}
-			/> */}
+			/>
 			<div className="center mb-10">
 				<button className="addButton" onClick={submitHandler}>
 					Submit

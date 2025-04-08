@@ -21,6 +21,12 @@ function Pagestylecomponent({ page }) {
 		if (value === "blog") {
 			navigate("/pages/blog/add/");
 		}
+		if (value === "table") {
+			navigate("/pages/table/add/");
+		}
+		if (value === "chalisa") {
+			navigate("/pages/chalisa/add/");
+		}
 	};
 	return (
 		<>
@@ -39,6 +45,9 @@ function Pagestylecomponent({ page }) {
 					<option value="temples">Page Style 3 (Temple)</option>
 					<option value="extrapages">Page Style 4 (Extra)</option>
 					<option value="blog">Page Style 5 (Blogs)</option>
+					<option value="table">Page Style 6 (table)</option>
+					<option value="chalisa">Page Style 7 (chalisa)</option>
+
 				</select>
 			</div>
 		</>

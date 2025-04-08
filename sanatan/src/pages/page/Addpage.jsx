@@ -243,6 +243,9 @@ function AddPage() {
 							<option value="scripture2">
 								Page Style 6 (Scriptures 2)
 							</option>
+							<option value="table">Page Style 7 (table)</option>
+							<option value="chalisa">Page Style 8 (chalisa)</option>
+
 						</select>
 					</div>
 					<div className="drop-col">
