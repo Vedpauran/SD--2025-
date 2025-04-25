@@ -21,6 +21,5 @@ app.use("/menu", verifyJWT, require("./menubuilder.routes"));
 app.use("/socialmedia", verifyJWT, require("./socialmedia.routes"));
 app.use("/customer-service", verifyJWT, require("./customer-service.routes"));
 app.use("/report", verifyJWT, require("./reports.routes"));
-app.use("/payment", require("./payment/paymentRoutes"));
 
 module.exports = app;
