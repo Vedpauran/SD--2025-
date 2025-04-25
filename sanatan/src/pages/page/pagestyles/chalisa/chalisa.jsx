@@ -515,8 +515,8 @@ function Chalisacontent() {
                                     <div className="chapter-icons">
                                         {/* Up and Down Buttons */}
                                         <div className="circle orange-circle">
-                                            <button className="icon-btn">
-                                                <IoChevronUp className="icon orange" />
+                                            <button className="edit">
+                                                <img alt="" src="/icons/svg/up-down.png" />
                                             </button>
                                             <button className="icon-btn"
                                             >

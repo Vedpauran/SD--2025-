@@ -13,30 +13,12 @@ function Tablecontent() {
         setPage((prevPage) => ({ ...prevPage, [name]: value }));
     };
 
-    const editorInputHandlerTable = (index, field, value) => {
-        const updatedTables = [...Page.tables];
-        updatedTables[index][field] = value;
-        setPage({ ...Page, tables: updatedTables });
-    };
+
     const [columnCount, setColumnCount] = useState("");
     const [mediaOption, setMediaOption] = useState("");
     const [columns, setColumns] = useState([]);
     const [values, setValues] = useState({ tableName: "" }); // Always includes "Table Name"
     const [tables, setTables] = useState([]);
-    const [selectedTable, setSelectedTable] = useState(null);
-
-    // Handle column name changes
-    // const handleColumnChange = (index, value) => {
-    //     const updatedColumns = [...columns];
-    //     updatedColumns[index] = value;
-    //     setColumns(updatedColumns);
-
-    //     // Initialize input fields for new column names
-    //     setValues((prevValues) => ({
-    //         ...prevValues,
-    //         [value]: prevValues[columns[index]] || "", // Keep old value if name changes
-    //     }));
-    // };
 
     const handleColumnChange = (index, newColumnName) => {
         const oldColumnName = columns[index];
@@ -92,6 +74,15 @@ function Tablecontent() {
         }));
     };
 
+    const [tableMedia, setTableMedia] = useState({
+        tableaudiodescription: "<p></p>",
+        tablevideodescription: "<p></p>",
+        tabledocumentsdescription: "<p></p>",
+        tableaudio: [],
+        tablevideo: [],
+        tabledocuments: [],
+    });
+
     const handleSaveTable = async () => {
         if (!values.tableName) return;
 
@@ -109,34 +100,113 @@ function Tablecontent() {
             columns: columns, // should be array of strings
             values: cleanedValues, // should be object { key: value }
             mediaOption: mediaOption,
-            tableaudiodescription: Page.tableaudiodescription,
-            tablevideodescription: Page.tablevideodescription,
-            tabledocumentsdescription: Page.tabledocumentsdescription,
-            tableaudio: Page.tableaudio,
-            tablevideo: Page.tablevideo,
-            tabledocuments: Page.tabledocuments,
+            ...tableMedia,
         };
 
         const updatedTables = [...tables, newTable];
 
-        setTables(updatedTables); // save in local state
+        setPage((prev) => ({
+            ...prev,
+            tables: updatedTables,
+        }));
+
+        // setTables(updatedTables); // save in local state
         setValues({ tableName: "" }); // reset inputs
         setColumns([]); // clear columns
         setColumnCount(""); // reset count
+        setTableMedia({ // reset media
+            tableaudiodescription: "<p></p>",
+            tablevideodescription: "<p></p>",
+            tabledocumentsdescription: "<p></p>",
+            tableaudio: [],
+            tablevideo: [],
+            tabledocuments: [],
+        });
 
-        const updatedPage = {
-            ...Page,
-            tables: updatedTables,
-        };
+        // const updatedPage = {
+        //     ...Page,
+        //     tables: updatedTables,
+        // };
 
-        try {
-            const response = await axios.post(`${process.env.REACT_APP_SERVER}page/table`, updatedPage);
-            console.log("Page saved successfully", response.data);
-        } catch (error) {
-            console.error("Error saving page:", error);
-        }
+        // try {
+        //     const response = await axios.post(`${process.env.REACT_APP_SERVER}page/table`, updatedPage);
+        //     console.log("Page saved successfully", response.data);
+        // } catch (error) {
+        //     console.error("Error saving page:", error);
+        // }
     };
 
+    const [faq, setFaq] = useState({
+        faqtitle: "",
+        faqdescription: "",
+    });
+
+    const handleFaqChange = (key, value) => {
+        setFaq((prev) => ({ ...prev, [key]: value }));
+    };
+
+    // const handleSaveFaq = async (e) => {
+    //     e.preventDefault();
+    //     try {
+    //         // Create new FAQ object
+    //         const newFaq = {
+    //             faqtitle: faq.faqtitle,
+    //             faqdescription: faq.faqdescription
+    //         };
+
+    //         // Make API call to save the updated page
+    //         const api = `${process.env.REACT_APP_SERVER}page/table`;
+    //         const res = await axios.post(api, {
+    //             ...Page,
+    //             faqs: [...(Page.faqs || []), newFaq]
+    //         });
+
+    //         if (res && res.data) {
+    //             // Update page state with response data
+    //             setPage(prev => ({
+    //                 ...prev,
+    //                 faqs: res.data.faqs || [...(prev.faqs || []), newFaq]
+    //             }));
+
+    //             // Reset FAQ form
+    //             setFaq({
+    //                 faqtitle: "",
+    //                 faqdescription: "",
+    //             });
+    //         } else {
+    //             console.error("Invalid response from server");
+    //         }
+
+    //     } catch (err) {
+    //         console.error("Error saving FAQ:", err);
+    //         if (err.response && err.response.data) {
+    //             console.error("Server error:", err.response.data);
+    //         }
+    //     }
+    // }
+    const handleSaveFaq = (e) => {
+        e.preventDefault();
+
+        // Create new FAQ object
+        const newFaq = {
+            faqtitle: faq.faqtitle,
+            faqdescription: faq.faqdescription,
+        };
+
+        // Update the Page state with the new FAQ
+        setPage((prev) => ({
+            ...prev,
+            faqs: [...(prev.faqs || []), newFaq],
+        }));
+
+        // Reset FAQ form
+        setFaq({
+            faqtitle: "",
+            faqdescription: "",
+        });
+
+        console.log("FAQ added locally:", newFaq);
+    };
 
     const PageModal = {
         Availablity: [],
@@ -170,8 +240,12 @@ function Tablecontent() {
                 tabledocuments: [],
             }
         ],
-        faqtitle: "<p></p>",
-        faqdescription: "<p></p>",
+        faqs: [
+            {
+                faqtitle: "<p></p>",
+                faqdescription: "<p></p>",
+            }
+        ]
     };
 
     const handleFileDelete = (arrayName, index) => {
@@ -599,15 +673,25 @@ function Tablecontent() {
                                 <div className="card tablecard">
                                     <h1>Audio</h1>
                                     {new TextEditor(
-                                        Page.tables[0].tableaudiodescription,
-                                        (e) => editorInputHandlerTable(0, "tableaudiodescription", e),
+                                        tableMedia.tableaudiodescription,
+                                        (e) => setTableMedia((prev) => ({ ...prev, tableaudiodescription: e })),
                                         ""
                                     )}
                                     <FileInputComponent
                                         title="Upload File or add link"
-                                        links={Page.tables[0].tableaudio}
-                                        onDelete={(i) => handleFileDelete("audio", i)}
-                                        onAdd={(file) => Page.tables[0].tableaudio.push(file)}
+                                        links={tableMedia.tableaudio}
+                                        onDelete={(i) =>
+                                            setTableMedia((prev) => ({
+                                                ...prev,
+                                                tableaudio: prev.tableaudio.filter((_, index) => index !== i),
+                                            }))
+                                        }
+                                        onAdd={(file) =>
+                                            setTableMedia((prev) => ({
+                                                ...prev,
+                                                tableaudio: [...prev.tableaudio, file],
+                                            }))
+                                        }
                                         type="array"
                                     />
                                 </div>
@@ -616,12 +700,26 @@ function Tablecontent() {
                             {["video", "all"].includes(mediaOption) && (
                                 <div className="card tablecard">
                                     <h1>Video</h1>
-                                    {new TextEditor(Page.tablevideodescription, (e) => editorInputHandler("tablevideodescription", e), "")}
+                                    {new TextEditor(
+                                        tableMedia.tablevideodescription,
+                                        (e) => setTableMedia((prev) => ({ ...prev, tablevideodescription: e })),
+                                        ""
+                                    )}
                                     <FileInputComponent
                                         title="Upload File or add link"
-                                        links={Page.tablevideo}
-                                        onDelete={(i) => handleFileDelete("video", i)}
-                                        onAdd={(file) => Page.tablevideo.push(file)}
+                                        links={tableMedia.tablevideo}
+                                        onDelete={(i) =>
+                                            setTableMedia((prev) => ({
+                                                ...prev,
+                                                tablevideo: prev.tablevideo.filter((_, index) => index !== i),
+                                            }))
+                                        }
+                                        onAdd={(file) =>
+                                            setTableMedia((prev) => ({
+                                                ...prev,
+                                                tablevideo: [...prev.tablevideo, file],
+                                            }))
+                                        }
                                         type="array"
                                     />
                                 </div>
@@ -630,16 +728,32 @@ function Tablecontent() {
                             {["pdf", "all"].includes(mediaOption) && (
                                 <div className="card tablecard">
                                     <h1>Documents</h1>
-                                    {new TextEditor(Page.tabledocumentsdescription, (e) => editorInputHandler("tabledocumentsdescription", e), "")}
+                                    {new TextEditor(
+                                        tableMedia.tabledocumentsdescription,
+                                        (e) => setTableMedia((prev) => ({ ...prev, tabledocumentsdescription: e })),
+                                        ""
+                                    )}
                                     <FileInputComponent
                                         title="Upload File or add link"
-                                        links={Page.tabledocuments}
-                                        onDelete={(i) => handleFileDelete("documents", i)}
-                                        onAdd={(file) => Page.tabledocuments.push(file)}
+                                        links={tableMedia.tabledocuments}
+                                        onDelete={(i) =>
+                                            setTableMedia((prev) => ({
+                                                ...prev,
+                                                tabledocuments: prev.tabledocuments.filter((_, index) => index !== i),
+                                            }))
+                                        }
+                                        onAdd={(file) =>
+                                            setTableMedia((prev) => ({
+                                                ...prev,
+                                                tabledocuments: [...prev.tabledocuments, file],
+                                            }))
+                                        }
                                         type="array"
                                     />
                                 </div>
                             )}
+
+
                             <div className="center">
                                 {" "}
                                 {/* <button className="addButton btnoutline" >
@@ -647,28 +761,7 @@ function Tablecontent() {
                                 </button> */}
                                 <button className="addButton" onClick={handleSaveTable}>Save</button>
                             </div>
-                            {/* Table List Section */}
-                            <div className="table-list">
-                                {tables.map((table, index) => (
-                                    <button
-                                        key={index}
-                                        className={`table-button ${selectedTable === index ? "selected" : ""}`}
-                                        onClick={() => setSelectedTable(index)}
-                                    >
-                                        {table.tableName}
-                                    </button>
-                                ))}
-                            </div>
 
-                            {/* Selected Table Details */}
-                            {selectedTable !== null && (
-                                <div className="table-details">
-                                    <h3>Table Details</h3>
-                                    {Object.entries(tables[selectedTable]).map(([key, value]) => (
-                                        <p key={key}><strong>{key}:</strong> {value}</p>
-                                    ))}
-                                </div>
-                            )}
                         </div>
                     </>
                 )}
@@ -694,8 +787,8 @@ function Tablecontent() {
                                     <label >Add Title</label>
                                     <input
                                         type="text"
-                                        value={Page.faqtitle}
-                                        onChange={(e) => editorInputHandler("faqtitle", e.target.value)}
+                                        value={faq.faqtitle}
+                                        onChange={(e) => handleFaqChange("faqtitle", e.target.value)}
                                     />
                                 </div>
                             </div>
@@ -703,14 +796,14 @@ function Tablecontent() {
                                 <div className="column-item">
                                     <label >Add Description</label>
                                     <textarea
-                                        value={Page.faqdescription}
-                                        onChange={(e) => editorInputHandler("faqdescription", e.target.value)}
+                                        value={faq.faqdescription}
+                                        onChange={(e) => handleFaqChange("faqdescription", e.target.value)}
                                         rows="5" cols="50" />
 
                                 </div>
                             </div>
                             <div className="center">
-                                <button className="addButton">
+                                <button className="addButton" onClick={handleSaveFaq}>
                                     save
                                 </button>
                             </div>

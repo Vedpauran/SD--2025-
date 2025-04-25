@@ -10,6 +10,9 @@ function Tablecontentupdate() {
     const navigate = useNavigate();
     const { id, lang } = useParams();
     const LanguageAdminName = lang;
+
+
+
     const PageModal = {
         Availablity: [],
         Media: [],
@@ -28,19 +31,28 @@ function Tablecontentupdate() {
         documents: [],
         Page: id,
         Language: lang,
-        tableName: "<p></p>",
-        columns: [],
-        values: {}, // Object for dynamic column values
-        mediaOption: "<p></p>", // Default value
-        tableaudiodescription: "<p></p>",
-        tablevideodescription: "<p></p>",
-        tabledocumentsdescription: "<p></p>",
-        tableaudio: [],
-        tablevideo: [],
-        tabledocuments: [],
-        faqtitle: "<p></p>",
-        faqdescription: "<p></p>",
+        tables: [
+            {
+                tableName: "",
+                columns: [],
+                values: {}, // Object for dynamic column values
+                mediaOption: "", // Default value
+                tableaudiodescription: "<p></p>",
+                tablevideodescription: "<p></p>",
+                tabledocumentsdescription: "<p></p>",
+                tableaudio: [],
+                tablevideo: [],
+                tabledocuments: [],
+            }
+        ],
+        faqs: [
+            {
+                faqtitle: "<p></p>",
+                faqdescription: "<p></p>",
+            }
+        ]
     };
+
 
     const errormsg = () =>
         toast.error("Unexpected Error ouccured", {
@@ -53,6 +65,8 @@ function Tablecontentupdate() {
             progress: undefined,
             theme: "light",
         });
+
+
     async function fetchdata() {
         try {
             const response = await axios.get(
@@ -60,6 +74,8 @@ function Tablecontentupdate() {
             );
             setPage(response.data);
             Availblearray(response.data.Availablity);
+            setTables(response.data.tables);
+            setFaq(response.data.faqs);
         } catch (error) {
             errormsg();
         }
@@ -156,19 +172,30 @@ function Tablecontentupdate() {
     const [columns, setColumns] = useState([]);
     const [values, setValues] = useState({ tableName: "" }); // Always includes "Table Name"
     const [tables, setTables] = useState([]);
-    const [selectedTable, setSelectedTable] = useState(null);
-    const [faqs, setFaqs] = useState([]);
+    const [activeTableIndex, setActiveTableIndex] = useState(null); // which one is selected
+
     // Handle column name changes
-    const handleColumnChange = (index, value) => {
+    const handleColumnChange = (index, newColumnName) => {
+        const oldColumnName = columns[index];
         const updatedColumns = [...columns];
-        updatedColumns[index] = value;
+        updatedColumns[index] = newColumnName;
         setColumns(updatedColumns);
 
-        // Initialize input fields for new column names
-        setValues((prevValues) => ({
-            ...prevValues,
-            [value]: prevValues[columns[index]] || "", // Keep old value if name changes
-        }));
+        setValues((prevValues) => {
+            const updatedValues = { ...prevValues };
+
+            // If the old column had a value, move it to the new column
+            if (oldColumnName && updatedValues[oldColumnName]) {
+                updatedValues[newColumnName] = updatedValues[oldColumnName];
+            }
+
+            // Delete the old key
+            if (oldColumnName && oldColumnName !== newColumnName) {
+                delete updatedValues[oldColumnName];
+            }
+
+            return updatedValues;
+        });
     };
 
     // Handle column count changes
@@ -201,46 +228,175 @@ function Tablecontentupdate() {
         }));
     };
 
-    // const handleSaveTable = () => {
-    //     if (!values.tableName) return;
+    const [tableMedia, setTableMedia] = useState({
+        tableaudiodescription: "<p></p>",
+        tablevideodescription: "<p></p>",
+        tabledocumentsdescription: "<p></p>",
+        tableaudio: [],
+        tablevideo: [],
+        tabledocuments: [],
+    });
 
-    //     setTables([...tables, { ...values }]);
-    //     setValues({ tableName: "" });
-    // };
     const handleSaveTable = async () => {
         if (!values.tableName) return;
 
+        const cleanedValues = {};
+        columns.forEach((col) => {
+            if (col && values[col]) {
+                cleanedValues[col] = values[col];
+            }
+        });
+
+        const newTable = {
+            tableName: values.tableName,
+            columns: columns,
+            values: cleanedValues,
+            mediaOption: mediaOption,
+            ...tableMedia,
+        };
+
         try {
-            const response = await axios.post(`${process.env.REACT_APP_SERVER}page/table`, {
-                ...values,
-                Page: id,
-                Language: lang,
+            const api = `${process.env.REACT_APP_SERVER}page/table/save`;
+            const res = await axios.post(api, {
+                Page: Page.Page,       // ObjectId of the page
+                Language: Page.Language,
+                table: newTable        // only the new table object
             });
-            setTables([...tables, response.data]); // Add the new table to the list
-            setValues({ tableName: "" }); // Reset form
-            toast.success("Table saved successfully!", {
-                position: "bottom-right",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "light",
-            });
-        } catch (error) {
-            errormsg();
+
+            console.log("Saved table only:", res.data);
+            toast.success("Table data saved successfully");
+
+            // Update local state if needed
+            setTables((prev) => [...prev, newTable]);
+            setPage((prev) => ({
+                ...prev,
+                tables: [...prev.tables, newTable],
+            }));
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to save table");
         }
+
+        // Reset UI inputs
+        setValues({ tableName: "" });
+        setColumns([]);
+        setColumnCount("");
+        setTableMedia({
+            tableaudiodescription: "<p></p>",
+            tablevideodescription: "<p></p>",
+            tabledocumentsdescription: "<p></p>",
+            tableaudio: [],
+            tablevideo: [],
+            tabledocuments: [],
+        });
     };
-    const handleAddFaq = () => {
-        if (Page.faqtitle.trim() && Page.faqdescription.trim()) {
-            setFaqs([...faqs, { title: Page.faqtitle, description: Page.faqdescription }]);
-            setPage({ faqtitle: "", faqdescription: "" }); // Reset input fields
+
+    const handleDeleteTable = async (index) => {
+        const tableToDelete = tables[index];
+
+        try {
+            // Send a DELETE request to the backend
+            const api = `${process.env.REACT_APP_SERVER}page/table/delete`;
+            await axios.post(api, {
+                Page: Page.Page,
+                Language: Page.Language,
+                tableName: tableToDelete.tableName,
+            });
+
+            // Remove the table from the frontend state
+            setTables((prevTables) => prevTables.filter((_, i) => i !== index));
+            setPage((prevPage) => ({
+                ...prevPage,
+                tables: prevPage.tables.filter((_, i) => i !== index),
+            }));
+
+            // Clear table fields
+            setColumns([]);
+            setValues({ tableName: "" });
+            setColumnCount("");
+            setMediaOption("");
+            setTableMedia({
+                tableaudiodescription: "<p></p>",
+                tablevideodescription: "<p></p>",
+                tabledocumentsdescription: "<p></p>",
+                tableaudio: [],
+                tablevideo: [],
+                tabledocuments: [],
+            });
+        } catch (err) {
+            console.error(err);
+
         }
     };
 
-    const handleDeleteFaq = (index) => {
-        setFaqs(faqs.filter((_, i) => i !== index));
+    const handleAddTable = () => {
+        // Reset all input fields for a new table
+        setValues({ tableName: "" });
+        setColumns([]);
+        setColumnCount("");
+        setMediaOption("");
+        setActiveTableIndex(null); // No table selected yet
+
+        setTableMedia({
+            tableaudiodescription: "<p></p>",
+            tablevideodescription: "<p></p>",
+            tabledocumentsdescription: "<p></p>",
+            tableaudio: [],
+            tablevideo: [],
+            tabledocuments: [],
+        });
+    };
+
+    const [faq, setFaq] = useState({
+        faqtitle: "<p></p>",
+        faqdescription: "<p></p>",
+    });
+
+    const handleFaqChange = (key, value) => {
+        setFaq((prev) => ({ ...prev, [key]: value }));
+    };
+
+    const handleSaveFaq = async () => {
+        try {
+            const api = `${process.env.REACT_APP_SERVER}page/table/savefaq`;
+            const res = await axios.post(api, {
+                Page: Page.Page,
+                Language: Page.Language,
+                faq: faq // Correct key for backend
+            });
+
+            setPage((prev) => ({
+                ...prev,
+                faqs: [...prev.faqs, faq], // Append new faq to local state
+            }));
+
+            // Reset input fields
+            setFaq({
+                faqtitle: "",
+                faqdescription: "",
+            });
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleDeleteFaq = async (index) => {
+        const faqtitleToDelete = faq[index].faqtitle;
+        try {
+            const api = `${process.env.REACT_APP_SERVER}page/table/deletefaq`;
+            await axios.post(api, {
+                Page: Page.Page,
+                Language: Page.Language,
+                faqtitle: faqtitleToDelete,
+            });
+
+            setPage((prev) => ({
+                ...prev,
+                faqs: prev.faqs.filter((_, i) => i !== index), // Remove from local state
+            }));
+        } catch (err) {
+            console.error(err);
+        }
     };
     return (
         <div >
@@ -562,7 +718,45 @@ function Tablecontentupdate() {
                                     <img alt="" src="/icons/svg/search.svg" />
                                 </div>
                             </div>
+                            {/* Table view seaction */}
+                            <div className="table-viewer-container">
+                                <div className="table-buttons-wrapper">
 
+                                    {tables.map((table, index) => (
+                                        <button
+                                            key={index}
+                                            className={`table-button ${activeTableIndex === index ? 'active' : ''}`}
+                                            onClick={() => {
+                                                setActiveTableIndex(index);
+                                                const selected = tables[index];
+
+                                                setValues({
+                                                    tableName: selected.tableName,
+                                                    ...selected.values,
+                                                });
+
+                                                setColumns(selected.columns);
+                                                setColumnCount(selected.columns.length);
+                                                setMediaOption(selected.mediaOption || "");
+
+                                                setTableMedia({
+                                                    tableaudiodescription: selected.tableaudiodescription || "<p></p>",
+                                                    tablevideodescription: selected.tablevideodescription || "<p></p>",
+                                                    tabledocumentsdescription: selected.tabledocumentsdescription || "<p></p>",
+                                                    tableaudio: selected.tableaudio || [],
+                                                    tablevideo: selected.tablevideo || [],
+                                                    tabledocuments: selected.tabledocuments || [],
+                                                });
+                                            }}
+                                        >
+                                            {table.tableName || `Table ${index + 1}`}
+                                        </button>
+                                    ))}
+
+                                </div>
+
+
+                            </div>
                             {/* Enter Values Section */}
                             <div className="column-section">
                                 <h2 className="subtitle">Enter Values</h2>
@@ -595,16 +789,31 @@ function Tablecontentupdate() {
                                 </div>
                             </div>
 
+
                             {/* Conditionally Rendered Media Sections */}
                             {["audio", "all"].includes(mediaOption) && (
                                 <div className="card tablecard">
                                     <h1>Audio</h1>
-                                    {new TextEditor(Page.tableaudiodescription, (e) => editorInputHandler("tableaudiodescription", e), "")}
+                                    {new TextEditor(
+                                        tableMedia.tableaudiodescription,
+                                        (e) => setTableMedia((prev) => ({ ...prev, tableaudiodescription: e })),
+                                        ""
+                                    )}
                                     <FileInputComponent
                                         title="Upload File or add link"
-                                        links={Page.tableaudio}
-                                        onDelete={(i) => handleFileDelete("audio", i)}
-                                        onAdd={(file) => Page.tableaudio.push(file)}
+                                        links={tableMedia.tableaudio}
+                                        onDelete={(i) =>
+                                            setTableMedia((prev) => ({
+                                                ...prev,
+                                                tableaudio: prev.tableaudio.filter((_, index) => index !== i),
+                                            }))
+                                        }
+                                        onAdd={(file) =>
+                                            setTableMedia((prev) => ({
+                                                ...prev,
+                                                tableaudio: [...prev.tableaudio, file],
+                                            }))
+                                        }
                                         type="array"
                                     />
                                 </div>
@@ -613,12 +822,26 @@ function Tablecontentupdate() {
                             {["video", "all"].includes(mediaOption) && (
                                 <div className="card tablecard">
                                     <h1>Video</h1>
-                                    {new TextEditor(Page.tablevideodescription, (e) => editorInputHandler("tablevideodescription", e), "")}
+                                    {new TextEditor(
+                                        tableMedia.tablevideodescription,
+                                        (e) => setTableMedia((prev) => ({ ...prev, tablevideodescription: e })),
+                                        ""
+                                    )}
                                     <FileInputComponent
                                         title="Upload File or add link"
-                                        links={Page.tablevideo}
-                                        onDelete={(i) => handleFileDelete("video", i)}
-                                        onAdd={(file) => Page.tablevideo.push(file)}
+                                        links={tableMedia.tablevideo}
+                                        onDelete={(i) =>
+                                            setTableMedia((prev) => ({
+                                                ...prev,
+                                                tablevideo: prev.tablevideo.filter((_, index) => index !== i),
+                                            }))
+                                        }
+                                        onAdd={(file) =>
+                                            setTableMedia((prev) => ({
+                                                ...prev,
+                                                tablevideo: [...prev.tablevideo, file],
+                                            }))
+                                        }
                                         type="array"
                                     />
                                 </div>
@@ -627,23 +850,61 @@ function Tablecontentupdate() {
                             {["pdf", "all"].includes(mediaOption) && (
                                 <div className="card tablecard">
                                     <h1>Documents</h1>
-                                    {new TextEditor(Page.tabledocumentsdescription, (e) => editorInputHandler("tabledocumentsdescription", e), "")}
+                                    {new TextEditor(
+                                        tableMedia.tabledocumentsdescription,
+                                        (e) => setTableMedia((prev) => ({ ...prev, tabledocumentsdescription: e })),
+                                        ""
+                                    )}
                                     <FileInputComponent
                                         title="Upload File or add link"
-                                        links={Page.tabledocuments}
-                                        onDelete={(i) => handleFileDelete("documents", i)}
-                                        onAdd={(file) => Page.tabledocuments.push(file)}
+                                        links={tableMedia.tabledocuments}
+                                        onDelete={(i) =>
+                                            setTableMedia((prev) => ({
+                                                ...prev,
+                                                tabledocuments: prev.tabledocuments.filter((_, index) => index !== i),
+                                            }))
+                                        }
+                                        onAdd={(file) =>
+                                            setTableMedia((prev) => ({
+                                                ...prev,
+                                                tabledocuments: [...prev.tabledocuments, file],
+                                            }))
+                                        }
                                         type="array"
                                     />
                                 </div>
                             )}
+
                             <div className="center">
                                 {" "}
-                                {/* <button className="addButton btnoutline" >
+                                <button
+                                    className="addButton"
+                                    onClick={handleAddTable}
+                                >
+                                    Add
+                                </button>
+                                <button
+                                    className="addButton btnoutline"
+                                    onClick={() => {
+                                        if (activeTableIndex !== null) {
+                                            handleDeleteTable(activeTableIndex);
+                                        } else {
+                                            toast.error("Please select a table to delete");
+                                        }
+                                    }}
+                                >
+                                    Delete
+                                </button>
+                                {/* <button
+                                    className="addButton btnoutline"
+                                    disabled={activeTableIndex === null}
+                                >
                                     Delete
                                 </button> */}
+
                                 <button className="addButton" onClick={handleSaveTable}>Save</button>
                             </div>
+
                         </div>
                     </>
                 )}
@@ -669,8 +930,8 @@ function Tablecontentupdate() {
                                     <label >Add Title</label>
                                     <input
                                         type="text"
-                                        value={Page.faqtitle}
-                                        onChange={(e) => editorInputHandler("faqtitle", e.target.value)}
+                                        value={faq.faqtitle}
+                                        onChange={(e) => handleFaqChange("faqtitle", e.target.value)}
                                     />
                                 </div>
                             </div>
@@ -678,32 +939,59 @@ function Tablecontentupdate() {
                                 <div className="column-item">
                                     <label >Add Description</label>
                                     <textarea
-                                        value={Page.faqdescription}
-                                        onChange={(e) => editorInputHandler("faqdescription", e.target.value)}
+                                        value={faq.faqdescription}
+                                        onChange={(e) => handleFaqChange("faqdescription", e.target.value)}
                                         rows="5" cols="50" />
 
                                 </div>
                             </div>
                             <div className="center">
-                                <button className="addButton" onClick={handleAddFaq}>
+                                <button className="addButton" onClick={handleSaveFaq}>
                                     save
                                 </button>
                             </div>
-                            {/* Display Added FAQs */}
-                            <div className="faq-list">
-                                {faqs.map((faq, index) => (
-                                    <div key={index} className="faq-item">
-                                        <div className="faq-content">
-                                            <h3>{faq.title}</h3>
-                                            <p>{faq.description}</p>
-                                        </div>
-                                        <div className="faq-actions">
-                                            <button onClick={() => handleDeleteFaq(index)}>🗑️</button>
-                                        </div>
-                                    </div>
-                                ))}
+                        </div>
+
+                        <div className="searchitem">
+                            <h1>FAQs</h1>
+                            <div className="blursearch">
+                                <input
+                                    className="search"
+                                    placeholder="Search"
+                                    type="search"
+                                    name="searchbar"
+                                    id="searchbar"
+                                />
+                                <img alt="" src="/icons/svg/search.svg" />
                             </div>
                         </div>
+                        <div className="faq-container">
+                            {Page.faqs.map((faq, index) => (
+                                <div className="faq-wrapper" key={index}>
+                                    <div className="faq-card">
+                                        <div className="faq-header">
+                                            <h2 className="faq-title">{faq.faqtitle}</h2>
+                                            <button className="chevron">
+                                                <img alt="" src="/icons/svg/arrow-down.png" />
+                                            </button>
+                                        </div>
+                                        <p className="faq-description">{faq.faqdescription}</p>
+                                    </div>
+
+                                    {/* Positioned outside the card */}
+                                    <div className="faq-floating-actions">
+                                        <button className="edit">
+                                            <img alt="" src="/icons/svg/up-down.png" />
+                                        </button>
+                                        <button className="delete"
+                                            onClick={() => handleDeleteFaq(index)}>
+                                            <img alt="" src="/icons/svg/delete.png" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
                     </>
                 )}
 

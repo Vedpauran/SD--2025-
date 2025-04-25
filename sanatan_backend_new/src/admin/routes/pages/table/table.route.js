@@ -14,4 +14,10 @@ router.post("/", tableController.createTable); //create table
 router.put("/:id", tableController.updateTable); //update table
 router.delete("/:id", tableController.deleteTable); //delete table
 
+router.post("/save", tableController.saveTableData);
+router.post("/delete", tableController.deleteTableData);
+
+router.post("/savefaq", tableController.saveFaq);
+router.post("/deletefaq", tableController.deleteFaq);
+
 module.exports = router;

@@ -2,14 +2,11 @@
 
 const express = require("express");
 const router = express.Router();
-const scriptureController = require("../../../controllers/pages/scriptures/scriptures.controller");
+const scriptureController = require("../../../controllers/pages/scriptures/scriptures2.controller");
 
 router.get("/", scriptureController.getAllScriptures); //all scripture
 router.get("/:id", scriptureController.getScriptureById); // scripture by id
-router.get(
-	"/:id/:language",
-	scriptureController.getScriptureByLanguage
-); // scripture
+router.get("/:id/:language", scriptureController.getScriptureByLanguage); // scripture
 router.get("/trash", scriptureController.getTrashScriptures); //all trash scripture
 router.get("/active", scriptureController.getActiveScriptures); //all active scripture
 router.get("/draft", scriptureController.getDraftScriptures); //all draft scripture

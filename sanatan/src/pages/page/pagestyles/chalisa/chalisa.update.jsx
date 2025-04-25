@@ -563,19 +563,16 @@ function Chalisacontentupdate() {
                                         {/* Up and Down Buttons */}
                                         <div className="circle orange-circle">
                                             <button className="icon-btn">
-                                                <IoChevronUp className="icon orange" />
+                                                <img alt="" src="/icons/svg/up-down.png" />
                                             </button>
-                                            <button className="icon-btn"
-                                            >
-                                                <IoChevronDown className="icon orange" />
-                                            </button>
+
                                         </div>
 
                                         {/* Checkmark Button */}
                                         <div className="circle pink-circle">
                                             <button className="icon-btn"
                                                 onClick={() => toggleOriginMeaning(index)}>
-                                                <FaCheck className="icon pink" />
+                                                <img alt="" src="/icons/svg/arrow-down.png" />
                                             </button>
                                         </div>
                                     </div>

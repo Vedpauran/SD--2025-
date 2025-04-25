@@ -118,3 +118,83 @@ exports.getTrashTable = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// Save only table data (append to tables array or replace existing)
+exports.saveTableData = async (req, res) => {
+  try {
+    const { Page, Language, table } = req.body;
+
+    const record = await Table.findOne({ Page, Language });
+    if (!record) {
+      return res.status(404).json({ message: "Page record not found." });
+    }
+
+    // Append new table to existing tables
+    record.tables.push(table);
+    const updated = await record.save();
+
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// filepath: d:\sanatandharmaya\SD--2025-\sanatan_backend_new\src\admin\controllers\pages\table\table.controller.js
+exports.deleteTableData = async (req, res) => {
+  try {
+    const { Page, Language, tableName } = req.body;
+
+    const record = await Table.findOne({ Page, Language });
+    if (!record) {
+      return res.status(404).json({ message: "Page record not found." });
+    }
+
+    // Remove the table with the specified name
+    record.tables = record.tables.filter(
+      (table) => table.tableName !== tableName
+    );
+
+    const updated = await record.save();
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.saveFaq = async (req, res) => {
+  try {
+    const { Page, Language, faq } = req.body;
+
+    const record = await Table.findOne({ Page, Language });
+    if (!record) {
+      return res.status(404).json({ message: "Page record not found." });
+    }
+
+    // Append new table to existing tables
+    record.faqs.push(faq);
+    const updated = await record.save();
+
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.deleteFaq = async (req, res) => {
+  try {
+    const { Page, Language, faqtitle } = req.body;
+
+    const record = await Table.findOne({ Page, Language });
+    if (!record) {
+      return res.status(404).json({ message: "Page record not found." });
+    }
+
+    // Remove the table with the specified name
+    record.faqs = record.faqs.filter((faq) => faq.faqtitle !== faqtitle);
+
+    const updated = await record.save();
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

@@ -85,8 +85,12 @@ const TableStyleSchema = new Schema(
         tabledocuments: { type: [String], default: [] },
       },
     ],
-    faqtitle: { type: String },
-    faqdescription: { type: String },
+    faqs: [
+      {
+        faqtitle: { type: String },
+        faqdescription: { type: String },
+      },
+    ],
     Page: {
       type: Schema.Types.ObjectId,
       ref: "Page",
@@ -95,6 +99,7 @@ const TableStyleSchema = new Schema(
   },
   {
     timestamps: true,
+    versionKey: false,
   }
 );
 

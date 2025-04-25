@@ -208,6 +208,7 @@ function Scripturecontent() {
 	const setInclude = (data) => {
 		setPage({ ...Page, include: data });
 	};
+
 	return (
 		<div>
 			<h1>Add Page (Content) {LanguageAdminName} Language</h1>

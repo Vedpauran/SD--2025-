@@ -315,11 +315,10 @@ button {
 
 /* Background Circles */
 .circle {
-  width: 50px;
-  height: 50px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
 }
@@ -342,9 +341,7 @@ button {
 }
 
 /* Icons */
-.icon {
-  font-size: 20px;
-}
+
 
 .orange {
   color: orange;
@@ -360,5 +357,143 @@ button {
   padding: 10px;
   border-radius: 8px;
   border: 1px solid #ddd;
+}
+
+/* table view */
+
+.table-buttons-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 10px;
+  background: #f9f9f9;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.table-button {
+  padding: 10px 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.table-button:hover {
+  background-color: #f0f0f0;
+}
+
+.table-button.active {
+  background-color: orange;
+  color: white;
+  border-color: orange;
+}
+
+.table-details {
+  margin-top: 20px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.table-details table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-details th,
+.table-details td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+  word-break: break-word;
+}
+
+.table-details th {
+  background-color: #f0f0f0;
+}
+
+
+/* FAQ Section */
+
+.faq-container{
+  margin-top: 20px;
+}
+.faq-wrapper {
+  position: relative;
+  max-width: 1000px;
+  margin-right: 30px; /* or any value you like */
+  margin-bottom: 24px;
+}
+
+.faq-card {
+  background-color: #ffffff;
+  border: 1px solid #e0b4f1;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  font-family: Arial, sans-serif;
+}
+
+.faq-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.faq-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.chevron {
+  background-color: #E0ACD0;
+  border: none;
+  border-radius: 50%;
+  padding: 3px;
+  width: 40px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+
+.faq-description {
+  margin-top: 10px;
+  color: #4a5568;
+  font-size: 15px;
+}
+
+/* Floating buttons outside the box */
+.faq-floating-actions {
+  position: absolute;
+  top: 25px;
+  right: -100px;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.faq-floating-actions .edit,
+.faq-floating-actions .delete {
+  border: none;
+  border-radius: 50%;
+  padding: 6px;
+  width: 40px;
+  cursor: pointer;
+}
+
+.faq-floating-actions .edit {
+  background-color: #FAF3EB;
+}
+
+.faq-floating-actions .delete {
+  background-color: #E6E5F8;
 }
 
