@@ -9,20 +9,138 @@ const ApiResponse = require("../utils/apiresponse");
 const { default: mongoose } = require("mongoose");
 const currentDate = new Date();
 
+// const getActiveContentsByLangId = asyncHandler(async (req, res) => {
+//   const langid = req.params.langid;
+//   const { page = 1, limit = 10, query } = req.query;
+
+//   try {
+//     const contents = await Blog.aggregate([
+//       {
+//         $match: {
+//           status: "STATUS_ACTIVE",
+//         },
+//       },
+//       {
+//         $match: {
+//           $or: [{ publish: { $lt: currentDate } }, { publish: null }],
+//         },
+//       },
+//       {
+//         $addFields: {
+//           availableLanguages: {
+//             $map: {
+//               input: {
+//                 $filter: {
+//                   input: { $objectToArray: "$Availability" },
+//                   cond: {
+//                     $and: [
+//                       { $eq: ["$$this.v.checked", true] },
+//                       { $eq: ["$$this.v.value", "Available"] },
+//                     ],
+//                   },
+//                 },
+//               },
+//               as: "lang",
+//               in: "$$lang.k", // Extract the language key
+//             },
+//           },
+//         },
+//       },
+//       {
+//         $match: {
+//           $expr: { $gt: [{ $size: "$availableLanguages" }, 0] },
+//         },
+//       },
+//       {
+//         $addFields: {
+//           availableLanguage: {
+//             $cond: [
+//               { $in: [langid, "$availableLanguages"] },
+//               langid,
+//               {
+//                 $cond: [
+//                   {
+//                     $in: ["$defaultLanguage", "$availableLanguages"],
+//                   },
+//                   "$defaultLanguage",
+//                   { $first: "$availableLanguages" },
+//                 ],
+//               },
+//             ],
+//           },
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "wishlists",
+//           localField: "_id",
+//           foreignField: "item",
+//           as: "favr",
+//         },
+//       },
+//       {
+//         $addFields: {
+//           favr: {
+//             $cond: {
+//               if: {
+//                 $in: [req.user?._id, "$favr.user"],
+//               },
+//               then: true,
+//               else: false,
+//             },
+//           },
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "blogcontents",
+//           localField: "_id",
+//           foreignField: "Page",
+//           as: "content",
+//           let: { availableLanguage: "$availableLanguage" },
+//           pipeline: [
+//             {
+//               $match: {
+//                 $expr: { $eq: ["$Language", "$$availableLanguage"] }, // Use the variable in the match condition
+//               },
+//             },
+//             {
+//               $project: {
+//                 Language: 1,
+//                 _id: 1,
+//                 title: 1,
+//               },
+//             },
+//           ],
+//         },
+//       },
+//     ]);
+
+//     res.status(200).json(
+//       new ApiResponse(
+//         200,
+//         {
+//           contents,
+//         },
+//         "Pages fetched Successfully"
+//       )
+//     );
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// });
+
 const getActiveContentsByLangId = asyncHandler(async (req, res) => {
   const langid = req.params.langid;
-  const { page = 1, limit = 10, query } = req.query;
 
   try {
+    const currentDate = new Date();
+
     const contents = await Blog.aggregate([
       {
         $match: {
           status: "STATUS_ACTIVE",
-        },
-      },
-      {
-        $match: {
-          $or: [{ publish: { $lt: currentDate } }, { publish: null }],
+          // $or: [{ publish: { $lte: currentDate } }, { publish: null }],
         },
       },
       {
@@ -31,7 +149,7 @@ const getActiveContentsByLangId = asyncHandler(async (req, res) => {
             $map: {
               input: {
                 $filter: {
-                  input: { $objectToArray: "$Availability" },
+                  input: { $objectToArray: { $ifNull: ["$Availability", {}] } },
                   cond: {
                     $and: [
                       { $eq: ["$$this.v.checked", true] },
@@ -41,14 +159,16 @@ const getActiveContentsByLangId = asyncHandler(async (req, res) => {
                 },
               },
               as: "lang",
-              in: "$$lang.k", // Extract the language key
+              in: "$$lang.k",
             },
           },
         },
       },
       {
         $match: {
-          $expr: { $gt: [{ $size: "$availableLanguages" }, 0] },
+          $expr: {
+            $gt: [{ $size: { $ifNull: ["$availableLanguages", []] } }, 0],
+          },
         },
       },
       {
@@ -83,7 +203,12 @@ const getActiveContentsByLangId = asyncHandler(async (req, res) => {
           favr: {
             $cond: {
               if: {
-                $in: [req.user?._id, "$favr.user"],
+                $in: [
+                  req.user?._id
+                    ? new mongoose.Types.ObjectId(req.user._id)
+                    : null,
+                  "$favr.user",
+                ],
               },
               then: true,
               else: false,
@@ -94,37 +219,30 @@ const getActiveContentsByLangId = asyncHandler(async (req, res) => {
       {
         $lookup: {
           from: "blogcontents",
-          localField: "_id",
-          foreignField: "Page",
-          as: "content",
-          let: { availableLanguage: "$availableLanguage" },
+          let: {
+            availableLanguage: "$availableLanguage",
+            blogId: "$_id",
+          },
           pipeline: [
             {
               $match: {
-                $expr: { $eq: ["$Language", "$$availableLanguage"] }, // Use the variable in the match condition
-              },
-            },
-            {
-              $project: {
-                Language: 1,
-                _id: 1,
-                title: 1,
+                $expr: {
+                  $and: [
+                    { $eq: ["$Language", "$$availableLanguage"] },
+                    { $eq: ["$Page", "$$blogId"] },
+                  ],
+                },
               },
             },
           ],
+          as: "content",
         },
       },
     ]);
 
-    res.status(200).json(
-      new ApiResponse(
-        200,
-        {
-          contents,
-        },
-        "Pages fetched Successfully"
-      )
-    );
+    res
+      .status(200)
+      .json(new ApiResponse(200, { contents }, "Pages fetched Successfully"));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

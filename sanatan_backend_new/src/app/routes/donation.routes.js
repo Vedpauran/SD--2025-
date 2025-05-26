@@ -10,6 +10,118 @@ const { default: mongoose } = require("mongoose");
 const Invoice = require("../models/users/invoice");
 
 // ✅ Get active donation contents by language ID
+// const getActiveContentsByLangId = asyncHandler(async (req, res) => {
+//   const langid = req.params.langid;
+
+//   try {
+//     const currentDate = new Date(); // Ensure currentDate is defined
+
+//     const contents = await Donation.aggregate([
+//       {
+//         $match: {
+//           status: "STATUS_ACTIVE",
+//           $or: [{ publish: { $lt: currentDate } }, { publish: null }],
+//         },
+//       },
+//       {
+//         $addFields: {
+//           availableLanguages: {
+//             $map: {
+//               input: {
+//                 $filter: {
+//                   input: { $objectToArray: { $ifNull: ["$Availability", {}] } }, // ✅ Ensure Availability is not null
+//                   cond: {
+//                     $and: [
+//                       { $eq: ["$$this.v.checked", true] },
+//                       { $eq: ["$$this.v.value", "Available"] },
+//                     ],
+//                   },
+//                 },
+//               },
+//               as: "lang",
+//               in: "$$lang.k",
+//             },
+//           },
+//         },
+//       },
+//       {
+//         $match: {
+//           $expr: {
+//             $gt: [{ $size: { $ifNull: ["$availableLanguages", []] } }, 0],
+//           }, // ✅ Ensure it's always an array
+//         },
+//       },
+//       {
+//         $addFields: {
+//           availableLanguage: {
+//             $cond: [
+//               { $in: [langid, "$availableLanguages"] },
+//               langid,
+//               {
+//                 $cond: [
+//                   {
+//                     $in: ["$defaultLanguage", "$availableLanguages"],
+//                   },
+//                   "$defaultLanguage",
+//                   { $first: "$availableLanguages" },
+//                 ],
+//               },
+//             ],
+//           },
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "wishlists",
+//           localField: "_id",
+//           foreignField: "item",
+//           as: "favr",
+//         },
+//       },
+//       {
+//         $addFields: {
+//           favr: {
+//             $cond: {
+//               if: {
+//                 $in: [
+//                   req.user?._id
+//                     ? new mongoose.Types.ObjectId(req.user._id)
+//                     : null,
+//                   "$favr.user",
+//                 ],
+//               },
+//               then: true,
+//               else: false,
+//             },
+//           },
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "donationcontents",
+//           let: { availableLanguage: "$availableLanguage" }, // ✅ Define variable correctly
+//           pipeline: [
+//             {
+//               $match: {
+//                 $expr: {
+//                   $eq: ["$Language", "$$availableLanguage"], // ✅ Correct reference
+//                 },
+//               },
+//             },
+//           ],
+//           as: "content",
+//         },
+//       },
+//     ]);
+
+//     res
+//       .status(200)
+//       .json(new ApiResponse(200, { contents }, "Pages fetched Successfully"));
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// });
+
 const getActiveContentsByLangId = asyncHandler(async (req, res) => {
   const langid = req.params.langid;
 
@@ -99,12 +211,18 @@ const getActiveContentsByLangId = asyncHandler(async (req, res) => {
       {
         $lookup: {
           from: "donationcontents",
-          let: { availableLanguage: "$availableLanguage" }, // ✅ Define variable correctly
+          let: {
+            availableLanguage: "$availableLanguage",
+            donationId: "$_id",
+          },
           pipeline: [
             {
               $match: {
                 $expr: {
-                  $eq: ["$Language", "$$availableLanguage"], // ✅ Correct reference
+                  $and: [
+                    { $eq: ["$Language", "$$availableLanguage"] },
+                    { $eq: ["$Page", "$$donationId"] },
+                  ],
                 },
               },
             },
