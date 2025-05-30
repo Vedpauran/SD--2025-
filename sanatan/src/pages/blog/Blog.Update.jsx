@@ -125,6 +125,7 @@ function UpdateBlog() {
 		title: "",
 		image: "",
 		banner: "",
+		innerimage: [],
 		Availability: {},
 		Languages: [],
 		defaultLanguage: "",
@@ -471,11 +472,17 @@ function UpdateBlog() {
 				<h1>Inner Page Details</h1>
 				<FileInputComponent
 					title="Upload Image or add link"
-					links={Page.innerimage}
+					links={Page.innerimage || []}
 					onDelete={(i) => handleFileDelete("innerimage", i)}
-					onAdd={(image) => Page.innerimage.push(image)}
+					onAdd={(image) => {
+						setPage((prevPage) => ({
+							...prevPage,
+							innerimage: [...(prevPage.innerimage || []), image],
+						}));
+					}}
 					type={"array"}
 				/>
+
 			</div>
 			<LanguageDropDownComponent
 				items={Langs}
