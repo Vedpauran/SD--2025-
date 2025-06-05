@@ -6,7 +6,7 @@ import FileInputComponent from "../file-manager/components/FileInputComponent";
 
 function AddInnerCategory() {
 	const navigate = useNavigate();
-	var Api = `${process.env.REACT_APP_SERVER}c/categories/subcategories`;
+	var Api = `${process.env.REACT_APP_SERVER}c/categories/sub`;
 
 	const [data, Setdata] = useState([]);
 	async function fetchdata() {
@@ -17,7 +17,7 @@ function AddInnerCategory() {
 			);
 			Setlangs(res.data);
 			Setdata(response.data);
-		} catch (error) {}
+		} catch (error) { }
 	}
 	const [Langs, Setlangs] = useState([]);
 	const [AddAvailable, Availblearray] = useState({});
@@ -42,8 +42,7 @@ function AddInnerCategory() {
 
 	useEffect(() => {
 		fetchdata();
-	});
-
+	}, []);
 	const maincat = {
 		parent: "",
 		name: "",
@@ -110,12 +109,16 @@ function AddInnerCategory() {
 							onChange={inputHandler}
 							className="drop"
 							name="parent"
-							id="scat">
+							id="scat"
+						>
 							<option value="">---------------</option>
-							{data.map((op) => {
-								return <option value={op._id}>{op.Name}</option>;
-							})}
+							{data.map((op) => (
+								<option key={op._id} value={op._id}>
+									{op.Name}
+								</option>
+							))}
 						</select>
+
 					</div>
 					<div className="drop-col drop-lg">
 						<span className="drop-lable">Category Name</span>

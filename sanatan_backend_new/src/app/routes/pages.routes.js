@@ -104,16 +104,33 @@ router.get("/page/:pageId", async (req, res) => {
   }
 });
 
+// router.get("/:categoryName", async (req, res) => {
+//   const { categoryName } = req.params; // Extract category name from the URL
+//   try {
+//     // Get the dynamic model for the category
+//     const DynamicPageModel = getDynamicPageModel(categoryName);
+
+//     // Fetch pages
+//     const pages = await DynamicPageModel.find();
+
+//     // Return the pages
+//     res.status(200).json({ success: true, data: pages });
+//   } catch (error) {
+//     console.error("Error fetching pages:", error);
+//     res.status(500).json({ success: false, message: "Server Error" });
+//   }
+// });
+
 router.get("/:categoryName", async (req, res) => {
-  const { categoryName } = req.params; // Extract category name from the URL
+  const { categoryName } = req.params;
   try {
-    // Get the dynamic model for the category
     const DynamicPageModel = getDynamicPageModel(categoryName);
 
-    // Fetch pages
-    const pages = await DynamicPageModel.find();
+    // Only show pages that are published at or before now
+    const pages = await DynamicPageModel.find({
+      publish: { $lte: new Date() },
+    });
 
-    // Return the pages
     res.status(200).json({ success: true, data: pages });
   } catch (error) {
     console.error("Error fetching pages:", error);

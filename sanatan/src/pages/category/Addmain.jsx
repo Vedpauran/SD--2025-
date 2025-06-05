@@ -35,7 +35,7 @@ export function AddMainCategory() {
 				`${process.env.REACT_APP_SERVER}applanguages/`
 			);
 			setLanguagesList(res.data);
-		} catch (error) {}
+		} catch (error) { }
 	}
 
 	useEffect(() => {
@@ -161,7 +161,7 @@ export function AddMainCategory() {
 					</div>
 					<div className="drop-col">
 						<span className="drop-lable">
-							Category Color -Left side
+							Category Color -Right side
 						</span>
 						<input
 							type="text"
@@ -171,7 +171,7 @@ export function AddMainCategory() {
 					</div>
 					<div className="drop-col">
 						<span className="drop-lable">
-							Category Color -Right side
+							Category Color -Left side
 						</span>
 						<input
 							type="text"

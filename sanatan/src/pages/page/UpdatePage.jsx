@@ -191,6 +191,13 @@ function UpdatePage() {
 		});
 	};
 
+	function formatDateTimeLocal(date) {
+		if (!date) return "";
+		const d = new Date(date);
+		d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); // fix timezone offset
+		return d.toISOString().slice(0, 16);
+	}
+
 	return (
 		<div>
 			<>
@@ -297,12 +304,19 @@ function UpdatePage() {
 						<div className="drop-col">
 							{" "}
 							<span className="drop-lable">Publish</span>
-							<input
-								type="datetime-local"
+							{/* <input
+								type="datetime-"
 								name="publish"
 								value={Page.publish.toString().slice(0, 16)}
 								onChange={inputHandler}
+							/> */}
+							<input
+								type="datetime-local"
+								name="publish"
+								value={formatDateTimeLocal(Page.publish)}
+								onChange={inputHandler}
 							/>
+
 						</div>
 					</div>
 				</div>

@@ -4,7 +4,6 @@ const Category = require("../../models/category/subCategory.model");
 const asyncHandler = require("../../utils/asyncHandler");
 const mongoose = require("mongoose");
 // Get all categories
-
 exports.getAllCategories = async (req, res) => {
   try {
     const categories = await Category.find({ Parent: req.params.id }).populate({
@@ -15,6 +14,22 @@ exports.getAllCategories = async (req, res) => {
     // console.log("category", categories);
     res.json(categories);
   } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+exports.getAllSubCategories = async (req, res) => {
+  try {
+    const categories = await Category.aggregate([
+      {
+        $addFields: {
+          date: { $ifNull: ["$date", "$createdAt"] },
+          linercolor: ["$Colorleft", "$Colorright"],
+        },
+      },
+    ]);
+    res.json(categories);
+  } catch (err) {
+    console.error("Error fetching categories:", err);
     res.status(500).json({ message: err.message });
   }
 };

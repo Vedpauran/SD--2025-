@@ -26,6 +26,7 @@ router.post("/categories/main", maincategoryController.createCategory); //create
 router.put("/categories/main/:id", maincategoryController.updateCategory); //update categories
 router.delete("/categories/main/:id", maincategoryController.deleteCategory); //delete categories
 
+router.get("/categories/sub", subcategoryController.getAllSubCategories); //all categories
 router.get("/categories/sub/find/:id", subcategoryController.getAllCategories); //all categories
 router.get("/categories/sub/find/:id/type", subcategoryController.FindCategory); //all categories
 router.get("/categories/sub/:id", subcategoryController.getCategoryById); // category by id
