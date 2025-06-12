@@ -29,7 +29,12 @@ function Chalisacontentupdate() {
         video: [],
         documents: [],
         chapters: [
-            { tabletitle: "", original: "", meaning: "" }
+            {
+                tabletitle: "",
+                verses: [
+                    { original: "", meaning: "" }
+                ]
+            }
         ],
         Page: id,
         Language: lang,
@@ -64,24 +69,53 @@ function Chalisacontentupdate() {
 
     const [Page, setPage] = useState(PageModal);
     const [AddAvailable, Availblearray] = useState([{}]);
+
     const AddAvailablity = (id, value) => {
-        Availblearray({ ...AddAvailable, [id]: value });
-        setPage({ ...Page, Availablity: AddAvailable });
-        console.log(Page);
+        const updatedAvailability = { ...Page.Availablity, [id]: value };
+        let updatedMedia = [...Page.Media];
+
+        // Sync checkbox with dropdown
+        if (value === "1") {
+            if (!updatedMedia.includes(id)) {
+                updatedMedia.push(id);
+            }
+        } else if (value === "2") {
+            updatedMedia = updatedMedia.filter((item) => item !== id);
+        }
+
+        setPage({
+            ...Page,
+            Availablity: updatedAvailability,
+            Media: updatedMedia,
+        });
     };
 
-    function addorRemove(value) {
-        const index = Page.Media.indexOf(value); // Check if the value already exists in the AddLanguageay
+    const addorRemove = (value) => {
+        const updatedMedia = [...Page.Media];
+        const updatedAvailability = { ...Page.Availablity };
 
-        if (index !== -1) {
-            // If the value exists, remove it
-            Page.Media.splice(index, 1);
+        if (updatedMedia.includes(value)) {
+            // Uncheck -> Remove from Media and set to Inactive (2)
+            const newMedia = updatedMedia.filter((item) => item !== value);
+            updatedAvailability[value] = "2";
+            setPage({
+                ...Page,
+                Media: newMedia,
+                Availablity: updatedAvailability,
+            });
         } else {
-            // If the value doesn't exist, add it
-            Page.Media.push(value);
+            // Check -> Add to Media and set to Active (1)
+            updatedMedia.push(value);
+            updatedAvailability[value] = "1";
+            setPage({
+                ...Page,
+                Media: updatedMedia,
+                Availablity: updatedAvailability,
+            });
         }
-        setPage({ ...Page, Availablity: AddAvailable });
-    }
+    };
+
+
     const editorInputHandler = (name, value) => {
         setPage((prevPage) => ({ ...prevPage, [name]: value }));
     };
@@ -156,8 +190,8 @@ function Chalisacontentupdate() {
         setPage((prevPage) => ({
             ...prevPage,
             chapters: Array.isArray(prevPage.chapters)
-                ? [...prevPage.chapters, { tabletitle: "", original: "", meaning: "" }]
-                : [{ tabletitle: "", original: "", meaning: "" }], // Ensure default structure
+                ? [...prevPage.chapters, { tabletitle: "", verses: [{ original: "", meaning: "" }] }]
+                : [{ tabletitle: "", verses: [{ original: "", meaning: "" }] }],
         }));
     };
 
@@ -208,11 +242,74 @@ function Chalisacontentupdate() {
         }
     };
 
+    const handleAddVerse = (chapterIndex) => {
+        setPage((prevPage) => {
+            const updatedChapters = [...prevPage.chapters];
+            updatedChapters[chapterIndex].verses.push({ original: "", meaning: "" });
+            return { ...prevPage, chapters: updatedChapters };
+        });
+    };
+
+    // Remove a verse from a chapter
+    const handleDeleteVerse = async (chapterIndex, verseIndex) => {
+        try {
+            // Call backend API to delete the verse
+            const Api = `${process.env.REACT_APP_SERVER}page/chalisa/${id}/chapter/${chapterIndex}/verse/${verseIndex}`;
+            await axios.delete(Api);
+
+            // Update frontend state
+            setPage((prevPage) => {
+                const updatedChapters = [...prevPage.chapters];
+                updatedChapters[chapterIndex].verses = updatedChapters[chapterIndex].verses.filter((_, i) => i !== verseIndex);
+                return { ...prevPage, chapters: updatedChapters };
+            });
+
+            toast.success("Verse deleted successfully", {
+                position: "bottom-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "light",
+            });
+        } catch (error) {
+            toast.error("Failed to delete verse", {
+                position: "bottom-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "light",
+            });
+        }
+    };
+
+    // Handle verse changes
+    const handleVerseChange = (chapterIndex, verseIndex, field, value) => {
+        setPage((prevPage) => {
+            const updatedChapters = [...prevPage.chapters];
+            updatedChapters[chapterIndex].verses[verseIndex][field] = value;
+            return { ...prevPage, chapters: updatedChapters };
+        });
+    };
+
     useEffect(() => {
         if (!Array.isArray(Page.chapters)) {
             setPage((prevPage) => ({
                 ...prevPage,
-                chapters: [{ tabletitle: "", original: "", meaning: "" }],
+                chapters: [{ tabletitle: "", verses: [{ original: "", meaning: "" }] }],
+            }));
+        } else {
+            // Fix any chapters that are missing the 'verses' array
+            setPage((prevPage) => ({
+                ...prevPage,
+                chapters: prevPage.chapters.map(ch =>
+                    ch.verses ? ch : { ...ch, verses: [{ original: "", meaning: "" }] }
+                ),
             }));
         }
     }, [Page.chapters]);
@@ -232,133 +329,47 @@ function Chalisacontentupdate() {
                     </select>
                 </div>
                 <span className="drop-lable">Availablity</span>
+
+
                 <div className="drop-group">
-                    <label
-                        className="drop-check"
-                        style={{
-                            background:
-                                Page.Media.indexOf("pdf") !== -1
-                                    ? "orange"
-                                    : "transparent",
-                            color:
-                                Page.Media.indexOf("pdf") !== -1 ? "white" : "black",
-                        }}>
-                        <input
-                            type="checkbox"
-                            checked={
-                                Page.Media.indexOf("pdf") !== -1 ? true : false
-                            }
-                            onChange={(e) => addorRemove("pdf")}
-                            className="checkbox"
-                        />
-                        <span className="drop-lable">Pdf</span>
-                    </label>
-                    <div className="drop-col">
-                        <select
-                            className="drop"
-                            onChange={(e) => AddAvailablity("Pdf", e.target.value)}>
-                            <option value="1">Active</option>
-                            <option value="2">Inactive</option>
-                            <option value="3">Hide</option>
-                        </select>
-                    </div>
-                    <label
-                        className="drop-check"
-                        style={{
-                            background:
-                                Page.Media.indexOf("text") !== -1
-                                    ? "orange"
-                                    : "transparent",
-                            color:
-                                Page.Media.indexOf("text") !== -1 ? "white" : "black",
-                        }}>
-                        <input
-                            type="checkbox"
-                            checked={
-                                Page.Media.indexOf("text") !== -1 ? true : false
-                            }
-                            onChange={(e) => addorRemove("text")}
-                            className="checkbox"
-                        />
-                        <span className="drop-lable">Text</span>
-                    </label>
-                    <div className="drop-col">
-                        <select
-                            className="drop"
-                            onChange={(e) =>
-                                AddAvailablity("text", e.target.value)
-                            }>
-                            <option value="1">Active</option>
-                            <option value="2">Inactive</option>
-                            <option value="3">Hide</option>
-                        </select>
-                    </div>
-                    <label
-                        className="drop-check"
-                        style={{
-                            background:
-                                Page.Media.indexOf("audio") !== -1
-                                    ? "orange"
-                                    : "transparent",
-                            color:
-                                Page.Media.indexOf("audio") !== -1
-                                    ? "white"
-                                    : "black",
-                        }}>
-                        <input
-                            type="checkbox"
-                            checked={
-                                Page.Media.indexOf("audio") !== -1 ? true : false
-                            }
-                            onChange={(e) => addorRemove("audio")}
-                            className="checkbox"
-                        />
-                        <span className="drop-lable">Audio</span>
-                    </label>
-                    <div className="drop-col">
-                        <select
-                            className="drop"
-                            onChange={(e) =>
-                                AddAvailablity("audio", e.target.value)
-                            }>
-                            <option value="1">Active</option>
-                            <option value="2">Inactive</option>
-                            <option value="3">Hide</option>
-                        </select>
-                    </div>
-                    <label
-                        className="drop-check"
-                        style={{
-                            background:
-                                Page.Media.indexOf("video") !== -1
-                                    ? "orange"
-                                    : "transparent",
-                            color:
-                                Page.Media.indexOf("video") !== -1
-                                    ? "white"
-                                    : "black",
-                        }}>
-                        <input
-                            type="checkbox"
-                            checked={
-                                Page.Media.indexOf("video") !== -1 ? true : false
-                            }
-                            onChange={(e) => addorRemove("video")}
-                            className="checkbox"
-                        />
-                        <span className="drop-lable">Video</span>
-                    </label>
-                    <div className="drop-col">
-                        <select
-                            className="drop"
-                            onChange={(e) =>
-                                AddAvailablity("video", e.target.value)
-                            }>
-                            <option value="1">Active</option>
-                            <option value="2">Inactive</option>
-                            <option value="3">Hide</option>
-                        </select>
-                    </div>
+                    {["pdf", "text", "audio", "video"].map((type) => (
+                        <React.Fragment key={type}>
+                            <label
+                                className="drop-check"
+                                style={{
+                                    background: Page.Media.includes(type) ? "orange" : "transparent",
+                                    color: Page.Media.includes(type) ? "white" : "black",
+                                }}>
+                                <input
+                                    type="checkbox"
+                                    checked={Page.Media.includes(type)}
+                                    onChange={() => addorRemove(type)}
+                                    className="checkbox"
+                                />
+                                <span className="drop-lable">
+                                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                                </span>
+                            </label>
+
+                            <div className="drop-col">
+                                <select
+                                    className="drop"
+                                    value={
+                                        Page.Availablity && Page.Availablity[type]
+                                            ? Page.Availablity[type]
+                                            : Page.Media.includes(type)
+                                                ? "1"
+                                                : "2"
+                                    }
+                                    onChange={(e) => AddAvailablity(type, e.target.value)}>
+                                    <option value="1">Active</option>
+                                    <option value="2">Inactive</option>
+                                    <option value="3">Hide</option>
+                                </select>
+                            </div>
+                        </React.Fragment>
+                    ))}
+
                 </div>
             </div>
 
@@ -489,65 +500,73 @@ function Chalisacontentupdate() {
                         </div>
 
 
-                        {(Page.chapters || []).map((chapter, index) => (
-                            <div key={index} className="chapter-container">
+
+                        {(Page.chapters || []).map((chapter, chapterIndex) => (
+                            <div key={chapterIndex} className="chapter-container">
                                 <div className="column-list">
                                     <div className="column-item">
-                                        <label htmlFor={`tabletitle-${index}`}>Table Title</label>
+                                        <label htmlFor={`tabletitle-${chapterIndex}`}>Table Title</label>
                                         <input
                                             type="text"
-                                            id={`tabletitle-${index}`}
+                                            id={`tabletitle-${chapterIndex}`}
                                             value={chapter.tabletitle}
-                                            onChange={(e) => handleChapterChange(index, "tabletitle", e.target.value)}
+                                            onChange={(e) => handleChapterChange(chapterIndex, "tabletitle", e.target.value)}
                                             placeholder="Enter Table Title"
                                         />
                                     </div>
                                 </div>
 
-                                <div className="column-section">
-                                    <div className="column-list">
-                                        <div className="column-item">
-                                            <label htmlFor={`original-${index}`}>Chapter {index + 1} Original</label>
-                                            <input
-                                                type="text"
-                                                id={`original-${index}`}
-                                                value={chapter.original}
-                                                onChange={(e) => handleChapterChange(index, "original", e.target.value)}
-                                            />
+                                {chapter.verses.map((verse, verseIndex) => (
+                                    <div className="column-section" key={verseIndex}>
+                                        <div className="column-list">
+                                            <div className="column-item">
+                                                <label htmlFor={`original-${chapterIndex}-${verseIndex}`}>Original</label>
+                                                <input
+                                                    type="text"
+                                                    id={`original-${chapterIndex}-${verseIndex}`}
+                                                    value={verse.original}
+                                                    onChange={(e) => handleVerseChange(chapterIndex, verseIndex, "original", e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="column-list">
+                                            <div className="column-item">
+                                                <label htmlFor={`meaning-${chapterIndex}-${verseIndex}`}>Meaning</label>
+                                                <input
+                                                    type="text"
+                                                    id={`meaning-${chapterIndex}-${verseIndex}`}
+                                                    value={verse.meaning}
+                                                    onChange={(e) => handleVerseChange(chapterIndex, verseIndex, "meaning", e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="button-group center">
+                                            <button
+                                                className="secondary"
+                                                onClick={() => handleAddVerse(chapterIndex)}
+                                            >
+                                                Add More Chapter
+                                            </button>
+                                            <button
+                                                className="secondary"
+                                                onClick={() => handleDeleteVerse(chapterIndex, verseIndex)}
+                                                disabled={chapter.verses.length === 1}
+                                            >
+                                                Delete
+                                            </button>
+                                            <button className="primary">Save</button>
                                         </div>
                                     </div>
-                                    <div className="column-list">
-                                        <div className="column-item">
-                                            <label htmlFor={`meaning-${index}`}>Chapter {index + 1} Meaning</label>
-                                            <input
-                                                type="text"
-                                                id={`meaning-${index}`}
-                                                value={chapter.meaning}
-                                                onChange={(e) => handleChapterChange(index, "meaning", e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="button-group center">
-                                        <button
-                                            className="secondary"
-                                            onClick={() => handleDeleteChapter(index)}
-                                            disabled={Page.chapters.length === 1}
-                                        >
-                                            Delete
-                                        </button>
-                                        <button className="primary">Save</button>
-                                    </div>
-                                </div>
+                                ))}
                             </div>
                         ))}
 
-
-
                         <div className="button-group center">
-                            <button className="secondary" onClick={handleAddChapter}>Add More Chapter</button>
+                            <button className="secondary" onClick={handleAddChapter}>Add More Verse</button>
                             <button className="secondary">Save</button>
                             <button className="primary">Launch</button>
                         </div>
+
 
                         {Page.chapters.map((chapter, index) => (
                             <div className="chapter-container" key={index}>

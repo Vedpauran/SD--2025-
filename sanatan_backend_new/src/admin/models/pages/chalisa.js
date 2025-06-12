@@ -64,8 +64,12 @@ const chalisaStyleSchema = new Schema(
     chapters: [
       {
         tabletitle: { type: String },
-        original: { type: String },
-        meaning: { type: String },
+        verses: [
+          {
+            original: { type: String },
+            meaning: { type: String },
+          },
+        ],
       },
     ],
     Page: {

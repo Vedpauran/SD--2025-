@@ -108,26 +108,74 @@ function Templecontent() {
 			};
 		});
 	};
+
 	const [Page, setPage] = useState(PageModal);
 	const [AddAvailable, Availblearray] = useState([{}]);
+
+	// const AddAvailablity = (id, value) => {
+	// 	Availblearray({ ...AddAvailable, [id]: value });
+	// 	setPage({ ...Page, Availablity: AddAvailable });
+	// 	console.log(Page);
+	// };
+
 	const AddAvailablity = (id, value) => {
-		Availblearray({ ...AddAvailable, [id]: value });
-		setPage({ ...Page, Availablity: AddAvailable });
-		console.log(Page);
+		const updatedAvailability = { ...Page.Availablity, [id]: value };
+		let updatedMedia = [...Page.Media];
+
+		// Sync checkbox with dropdown
+		if (value === "1") {
+			if (!updatedMedia.includes(id)) {
+				updatedMedia.push(id);
+			}
+		} else if (value === "2") {
+			updatedMedia = updatedMedia.filter((item) => item !== id);
+		}
+
+		setPage({
+			...Page,
+			Availablity: updatedAvailability,
+			Media: updatedMedia,
+		});
 	};
 
-	function addorRemove(value) {
-		const index = Page.Media.indexOf(value); // Check if the value already exists in the AddLanguageay
+	// function addorRemove(value) {
+	// 	const index = Page.Media.indexOf(value); // Check if the value already exists in the AddLanguageay
 
-		if (index !== -1) {
-			// If the value exists, remove it
-			Page.Media.splice(index, 1);
+	// 	if (index !== -1) {
+	// 		// If the value exists, remove it
+	// 		Page.Media.splice(index, 1);
+	// 	} else {
+	// 		// If the value doesn't exist, add it
+	// 		Page.Media.push(value);
+	// 	}
+	// 	setPage({ ...Page, Availablity: AddAvailable });
+	// }
+
+	const addorRemove = (value) => {
+		const updatedMedia = [...Page.Media];
+		const updatedAvailability = { ...Page.Availablity };
+
+		if (updatedMedia.includes(value)) {
+			// Uncheck -> Remove from Media and set to Inactive (2)
+			const newMedia = updatedMedia.filter((item) => item !== value);
+			updatedAvailability[value] = "2";
+			setPage({
+				...Page,
+				Media: newMedia,
+				Availablity: updatedAvailability,
+			});
 		} else {
-			// If the value doesn't exist, add it
-			Page.Media.push(value);
+			// Check -> Add to Media and set to Active (1)
+			updatedMedia.push(value);
+			updatedAvailability[value] = "1";
+			setPage({
+				...Page,
+				Media: updatedMedia,
+				Availablity: updatedAvailability,
+			});
 		}
-		setPage({ ...Page, Availablity: AddAvailable });
-	}
+	};
+
 	const Savedata = async (e) => {
 		e.preventDefault();
 		try {
@@ -138,7 +186,7 @@ function Templecontent() {
 					navigate(`/pages/edit/temple/${res.data._id}/${lang}`);
 				})
 				.catch((error) => console.log(error));
-		} catch (error) {}
+		} catch (error) { }
 	};
 
 	const Submitdata = async (e) => {
@@ -152,7 +200,7 @@ function Templecontent() {
 					navigate(`/pages`);
 				})
 				.catch((error) => console.log(error));
-		} catch (error) {}
+		} catch (error) { }
 	};
 
 	return (
@@ -169,7 +217,7 @@ function Templecontent() {
 					</select>
 				</div>
 				<span className="drop-lable">Availablity</span>
-				<div className="drop-group">
+				{/* <div className="drop-group">
 					<label
 						className="drop-check"
 						style={{
@@ -296,6 +344,38 @@ function Templecontent() {
 							<option value="3">Hide</option>
 						</select>
 					</div>
+				</div> */}
+
+				<div className="drop-group">
+					{["pdf", "text", "audio", "video"].map((type) => (
+						<React.Fragment key={type}>
+							<label
+								className="drop-check"
+								style={{
+									background: Page.Media.includes(type) ? "orange" : "transparent",
+									color: Page.Media.includes(type) ? "white" : "black",
+								}}>
+								<input
+									type="checkbox"
+									checked={Page.Media.includes(type)}
+									onChange={() => addorRemove(type)}
+									className="checkbox"
+								/>
+								<span className="drop-lable">{type.charAt(0).toUpperCase() + type.slice(1)}</span>
+							</label>
+
+							<div className="drop-col">
+								<select
+									className="drop"
+									value={Page.Availablity?.[type] || "2"}
+									onChange={(e) => AddAvailablity(type, e.target.value)}>
+									<option value="1">Active</option>
+									<option value="2">Inactive</option>
+									<option value="3">Hide</option>
+								</select>
+							</div>
+						</React.Fragment>
+					))}
 				</div>
 			</div>
 

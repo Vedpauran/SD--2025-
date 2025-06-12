@@ -169,3 +169,36 @@ exports.saveChapters = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// Delete a specific verse from a chapter
+exports.deleteVerse = async (req, res) => {
+  try {
+    const { id, chapterIndex, verseIndex } = req.params;
+
+    // Find the Chalisa record
+    const record = await Chalisa.findById(id);
+    if (!record) {
+      return res.status(404).json({ message: "Chalisa not found" });
+    }
+
+    // Check chapter and verse existence
+    if (
+      record.chapters &&
+      record.chapters.length > chapterIndex &&
+      record.chapters[chapterIndex].verses &&
+      record.chapters[chapterIndex].verses.length > verseIndex
+    ) {
+      record.chapters[chapterIndex].verses.splice(verseIndex, 1);
+      await record.save();
+      return res
+        .status(200)
+        .json({ message: "Verse deleted successfully", record });
+    } else {
+      return res
+        .status(400)
+        .json({ message: "Invalid chapter or verse index" });
+    }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

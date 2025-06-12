@@ -109,9 +109,10 @@ router.get("/page/:pageId", async (req, res) => {
 
   try {
     if (!mongoose.Types.ObjectId.isValid(pageId)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid page ID format" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid page ID format",
+      });
     }
 
     const collections = await mongoose.connection.db
@@ -119,7 +120,6 @@ router.get("/page/:pageId", async (req, res) => {
       .toArray();
 
     let page = null;
-    let categoryName = null;
     let pagestyle = null;
 
     for (const collection of collections) {
@@ -129,19 +129,21 @@ router.get("/page/:pageId", async (req, res) => {
 
       page = await DynamicPageModel.findById(pageId);
       if (page) {
-        categoryName = category;
         pagestyle = page.pagestyle ? page.pagestyle.toLowerCase() : null;
         break;
       }
     }
 
     if (!page) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Page not found in any category" });
+      return res.status(404).json({
+        success: false,
+        message: "Page not found in any category",
+      });
     }
 
     let pagestyleData = null;
+    let filteredMediaData = {};
+
     if (pagestyle && pageStyleModels[pagestyle]) {
       const PageStyleModel = pageStyleModels[pagestyle];
 
@@ -156,7 +158,6 @@ router.get("/page/:pageId", async (req, res) => {
       if (pagestyleData && Array.isArray(pagestyleData.Media)) {
         const allowedMedia = pagestyleData.Media;
 
-        // Media type mapping (media => actual field in DB)
         const mediaFieldMap = {
           audio: { dataField: "audio", descriptionField: "audiodescription" },
           video: { dataField: "video", descriptionField: "videodescription" },
@@ -164,35 +165,22 @@ router.get("/page/:pageId", async (req, res) => {
             dataField: "documents",
             descriptionField: "documentsdescription",
           },
-          text: null, // handled separately
+          text: null,
         };
 
-        const filteredPagestyleData = {
-          Media: allowedMedia,
-          Language: pagestyleData.Language,
-          Page: pagestyleData.Page,
-          _id: pagestyleData._id,
-          createdAt: pagestyleData.createdAt,
-          updatedAt: pagestyleData.updatedAt,
-          __v: pagestyleData.__v,
-        };
-
-        // Add only allowed media fields and their descriptions
         for (const mediaType of allowedMedia) {
           const map = mediaFieldMap[mediaType];
           if (map) {
             if (pagestyleData[map.dataField] !== undefined) {
-              filteredPagestyleData[map.dataField] =
-                pagestyleData[map.dataField];
+              filteredMediaData[map.dataField] = pagestyleData[map.dataField];
             }
             if (pagestyleData[map.descriptionField] !== undefined) {
-              filteredPagestyleData[map.descriptionField] =
+              filteredMediaData[map.descriptionField] =
                 pagestyleData[map.descriptionField];
             }
           }
         }
 
-        // If text is in media, include text-related fields
         if (allowedMedia.includes("text")) {
           const textFields = [
             "title",
@@ -205,20 +193,48 @@ router.get("/page/:pageId", async (req, res) => {
           ];
           for (const field of textFields) {
             if (pagestyleData[field] !== undefined) {
-              filteredPagestyleData[field] = pagestyleData[field];
+              filteredMediaData[field] = pagestyleData[field];
             }
           }
         }
 
+        // ✅ Remove unwanted media fields before merge
+        const pagestyleObj = pagestyleData.toObject();
+        const allMediaFields = [
+          "audio",
+          "audiodescription",
+          "video",
+          "videodescription",
+          "documents",
+          "documentsdescription",
+          "title",
+          "description",
+          "innertitle",
+          "innerdescription",
+          "middletitle",
+          "middledescription",
+          "middleinfo",
+        ];
+
+        // Remove fields not present in allowedMedia
+        for (const key of allMediaFields) {
+          if (!(key in filteredMediaData) && key in pagestyleObj) {
+            delete pagestyleObj[key];
+          }
+        }
+
+        // Merge filtered media back
+        const finalPagestyleData = { ...pagestyleObj, ...filteredMediaData };
+
         return res.status(200).json({
           success: true,
           page,
-          pagestyleData: filteredPagestyleData,
+          pagestyleData: finalPagestyleData,
         });
       }
     }
 
-    // Default response if no filtered data logic applied
+    // No pagestyleData found
     return res.status(200).json({
       success: true,
       page,

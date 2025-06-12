@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 
 const LanguageDropDownComponent = ({
 	items,
@@ -29,6 +30,30 @@ const LanguageDropDownComponent = ({
 		}
 	}, [items, languages, setLanguages]);
 
+	// const { id, lang } = useParams();
+
+
+	// const PageModal = {
+	// 	Availablity: [],
+	// 	Media: [],
+	// 	title: "<p></p>",
+	// 	description: "<p></p>",
+	// 	innertitle: "<p></p>",
+	// 	innerdescription: "<p></p>",
+	// 	middledescription: "<p></p>",
+	// 	middletitle: "<p></p>",
+	// 	middleinfo: "<p></p>",
+	// 	audiodescription: "<p></p>",
+	// 	videodescription: "<p></p>",
+	// 	documentsdescription: "<p></p>",
+	// 	audio: [],
+	// 	video: [],
+	// 	documents: [],
+	// 	Page: id,
+	// 	Language: lang,
+	// };
+
+	// const [Page, setPage] = useState(PageModal);
 	const handleCheckboxChange = (event, adminName) => {
 		setLanguages({
 			...languages,
@@ -125,6 +150,34 @@ const LanguageDropDownComponent = ({
 							/>
 						</div>
 					</div>
+
+					{/* <div className="lang-icons">
+						<div className="action-col">
+							{["pdf", "text", "audio", "video"].map((type) => (
+								<img
+									key={type}
+									src={`/icons/svg/${type}icon.svg`}
+									alt={`${type} icon`}
+									height={45}
+									className={Page.Media.includes(type) ? "" : "icon-disabled"}
+								/>
+							))}
+						</div>
+					</div> */}
+
+
+					{/* Inline CSS inside JSX */}
+					{/* <style jsx>{`
+        .icon-disabled {
+          filter: grayscale(100%) brightness(60%);
+          opacity: 0.5;
+          transition: all 0.3s ease;
+        }
+        .action-col img:hover {
+          transform: scale(1.05);
+        }
+      `}</style> */}
+
 
 					<div className="drop-col">
 						<select

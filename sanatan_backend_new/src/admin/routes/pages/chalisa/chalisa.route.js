@@ -16,5 +16,10 @@ router.delete("/:id", chalisaController.deleteChalisa);
 
 router.delete("/:id/chapter/:chapterIndex", chalisaController.deleteChapter);
 router.put("/:id/chapters", chalisaController.saveChapters); // Save chapters
+// Delete a specific verse from a chapter
+router.delete(
+  "/:id/chapter/:chapterIndex/verse/:verseIndex",
+  chalisaController.deleteVerse
+);
 
 module.exports = router;
