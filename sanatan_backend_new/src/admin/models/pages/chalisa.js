@@ -80,6 +80,7 @@ const chalisaStyleSchema = new Schema(
   },
   {
     timestamps: true,
+    optimisticConcurrency: false,
   }
 );
 

@@ -146,20 +146,44 @@ exports.deleteChapter = async (req, res) => {
 };
 
 // Save chapters to the Chalisa record
+// exports.saveChapters = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const { chapters } = req.body;
+
+//     // Find the Chalisa record by ID
+//     const record = await Chalisa.findById(id);
+//     if (!record) {
+//       return res.status(404).json({ message: "Chalisa not found" });
+//     }
+
+//     // Update the chapters field
+//     record.chapters = chapters;
+//     await record.save();
+
+//     res.status(200).json({
+//       message: "Chapters saved successfully",
+//       chapters: record.chapters,
+//     });
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
 exports.saveChapters = async (req, res) => {
   try {
     const { id } = req.params;
     const { chapters } = req.body;
 
-    // Find the Chalisa record by ID
-    const record = await Chalisa.findById(id);
+    // Use findByIdAndUpdate for atomic update
+    const record = await Chalisa.findByIdAndUpdate(
+      id,
+      { chapters, updatedAt: Date.now() },
+      { new: true }
+    );
     if (!record) {
       return res.status(404).json({ message: "Chalisa not found" });
     }
-
-    // Update the chapters field
-    record.chapters = chapters;
-    await record.save();
 
     res.status(200).json({
       message: "Chapters saved successfully",

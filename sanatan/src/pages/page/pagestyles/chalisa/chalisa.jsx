@@ -33,7 +33,12 @@ function Chalisacontent() {
         video: [],
         documents: [],
         chapters: [
-            { tabletitle: "", original: "", meaning: "" }
+            {
+                tabletitle: "",
+                verses: [
+                    { original: "", meaning: "" }
+                ]
+            }
         ],
         Page: id,
         Language: lang,
@@ -54,11 +59,7 @@ function Chalisacontent() {
     const [Page, setPage] = useState(PageModal);
     const [AddAvailable, Availblearray] = useState([{}]);
 
-    // const AddAvailablity = (id, value) => {
-    //     Availblearray({ ...AddAvailable, [id]: value });
-    //     setPage({ ...Page, Availablity: AddAvailable });
-    //     console.log(Page);
-    // };
+
     const AddAvailablity = (id, value) => {
         const updatedAvailability = { ...Page.Availablity, [id]: value };
         let updatedMedia = [...Page.Media];
@@ -103,18 +104,7 @@ function Chalisacontent() {
             });
         }
     };
-    // function addorRemove(value) {
-    //     const index = Page.Media.indexOf(value); // Check if the value already exists in the AddLanguageay
 
-    //     if (index !== -1) {
-    //         // If the value exists, remove it
-    //         Page.Media.splice(index, 1);
-    //     } else {
-    //         // If the value doesn't exist, add it
-    //         Page.Media.push(value);
-    //     }
-    //     setPage({ ...Page, Availablity: AddAvailable });
-    // }
 
     const Savedata = async (e) => {
         e.preventDefault();
@@ -156,15 +146,17 @@ function Chalisacontent() {
         }));
     };
 
-    // ✅ Add a new chapter
+
     const handleAddChapter = () => {
         setPage((prevPage) => ({
             ...prevPage,
-            chapters: Array.isArray(prevPage.chapters)
-                ? [...prevPage.chapters, { tabletitle: "", original: "", meaning: "" }]
-                : [{ tabletitle: "", original: "", meaning: "" }], // Ensure default structure
+            chapters: [
+                ...(Array.isArray(prevPage.chapters) ? prevPage.chapters : []),
+                { tabletitle: "", verses: [{ original: "", meaning: "" }] }
+            ]
         }));
     };
+
 
     // ✅ Handle chapter changes
     const handleChapterChange = (index, field, value) => {
@@ -212,6 +204,91 @@ function Chalisacontent() {
             });
         }
     };
+
+    const handleAddVerse = (chapterIndex) => {
+        setPage(prevPage => {
+            const updatedChapters = prevPage.chapters.map((chapter, index) => {
+                if (index === chapterIndex) {
+                    return {
+                        ...chapter,
+                        verses: [...chapter.verses, { original: "", meaning: "" }]
+                    }
+                }
+                return chapter;
+            });
+            return { ...prevPage, chapters: updatedChapters };
+        });
+    };
+
+
+    // Remove a verse from a chapter
+    const handleDeleteVerse = async (chapterIndex, verseIndex) => {
+        try {
+            // Call backend API to delete the verse
+            const Api = `${process.env.REACT_APP_SERVER}page/chalisa/${id}/chapter/${chapterIndex}/verse/${verseIndex}`;
+            await axios.delete(Api);
+
+            // Update frontend state
+            setPage((prevPage) => {
+                const updatedChapters = [...prevPage.chapters];
+                updatedChapters[chapterIndex].verses = updatedChapters[chapterIndex].verses.filter((_, i) => i !== verseIndex);
+                return { ...prevPage, chapters: updatedChapters };
+            });
+
+            toast.success("Verse deleted successfully", {
+                position: "bottom-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "light",
+            });
+        } catch (error) {
+            toast.error("Failed to delete verse", {
+                position: "bottom-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "light",
+            });
+        }
+    };
+
+    // Handle verse changes
+    const handleVerseChange = (chapterIndex, verseIndex, field, value) => {
+        setPage((prevPage) => {
+            const updatedChapters = [...prevPage.chapters];
+            updatedChapters[chapterIndex].verses[verseIndex][field] = value;
+            return { ...prevPage, chapters: updatedChapters };
+        });
+    };
+
+    useEffect(() => {
+        if (!Array.isArray(Page.chapters) || Page.chapters.length === 0) {
+            setPage((prevPage) => ({
+                ...prevPage,
+                chapters: [{ tabletitle: "", verses: [{ original: "", meaning: "" }] }],
+            }));
+        } else {
+            const updatedChapters = Page.chapters.map(ch =>
+                ch.verses ? ch : { ...ch, verses: [{ original: "", meaning: "" }] }
+            );
+
+            // Only update if chapters were actually missing verses
+            if (JSON.stringify(updatedChapters) !== JSON.stringify(Page.chapters)) {
+                setPage((prevPage) => ({
+                    ...prevPage,
+                    chapters: updatedChapters
+                }));
+            }
+        }
+    }, [Page.chapters]);
+
 
 
     return (
@@ -516,66 +593,75 @@ function Chalisacontent() {
                             </div>
                         </div>
 
-
-                        {(Page.chapters || []).map((chapter, index) => (
-                            <div key={index} className="chapter-container">
+                        {(Page.chapters || []).map((chapter, chapterIndex) => (
+                            <div key={chapterIndex} className="chapter-container">
                                 <div className="column-list">
                                     <div className="column-item">
-                                        <label htmlFor={`tabletitle-${index}`}>Table Title</label>
+                                        <label htmlFor={`tabletitle-${chapterIndex}`}>Table Title</label>
                                         <input
                                             type="text"
-                                            id={`tabletitle-${index}`}
+                                            id={`tabletitle-${chapterIndex}`}
                                             value={chapter.tabletitle}
-                                            onChange={(e) => handleChapterChange(index, "tabletitle", e.target.value)}
+                                            onChange={(e) => handleChapterChange(chapterIndex, "tabletitle", e.target.value)}
                                             placeholder="Enter Table Title"
                                         />
                                     </div>
                                 </div>
 
-                                <div className="column-section">
-                                    <div className="column-list">
-                                        <div className="column-item">
-                                            <label htmlFor={`original-${index}`}>Chapter {index + 1} Original</label>
-                                            <input
-                                                type="text"
-                                                id={`original-${index}`}
-                                                value={chapter.original}
-                                                onChange={(e) => handleChapterChange(index, "original", e.target.value)}
-                                            />
+                                {chapter.verses.map((verse, verseIndex) => (
+                                    <div className="column-section" key={verseIndex}>
+                                        <div className="column-list">
+                                            <div className="column-item">
+                                                <label htmlFor={`original-${chapterIndex}-${verseIndex}`}>Original</label>
+                                                <input
+                                                    type="text"
+                                                    id={`original-${chapterIndex}-${verseIndex}`}
+                                                    value={verse.original}
+                                                    onChange={(e) => handleVerseChange(chapterIndex, verseIndex, "original", e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="column-list">
+                                            <div className="column-item">
+                                                <label htmlFor={`meaning-${chapterIndex}-${verseIndex}`}>Meaning</label>
+                                                <input
+                                                    type="text"
+                                                    id={`meaning-${chapterIndex}-${verseIndex}`}
+                                                    value={verse.meaning}
+                                                    onChange={(e) => handleVerseChange(chapterIndex, verseIndex, "meaning", e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="button-group center">
+                                            <button
+                                                className="secondary"
+                                                onClick={() => handleAddVerse(chapterIndex)}
+                                            >
+                                                Add More Verse
+                                            </button>
+                                            <button
+                                                className="secondary"
+                                                onClick={() => handleDeleteVerse(chapterIndex, verseIndex)}
+                                                disabled={chapter.verses.length === 1}
+                                            >
+                                                Delete
+                                            </button>
+                                            <button className="primary">Save</button>
                                         </div>
                                     </div>
-                                    <div className="column-list">
-                                        <div className="column-item">
-                                            <label htmlFor={`meaning-${index}`}>Chapter {index + 1} Meaning</label>
-                                            <input
-                                                type="text"
-                                                id={`meaning-${index}`}
-                                                value={chapter.meaning}
-                                                onChange={(e) => handleChapterChange(index, "meaning", e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="button-group center">
-                                        <button
-                                            className="secondary"
-                                            onClick={() => handleDeleteChapter(index)}
-                                            disabled={Page.chapters.length === 1}
-                                        >
-                                            Delete
-                                        </button>
-                                        <button className="primary">Save</button>
-                                    </div>
-                                </div>
+                                ))}
                             </div>
                         ))}
-
-
 
                         <div className="button-group center">
                             <button className="secondary" onClick={handleAddChapter}>Add More Chapter</button>
                             <button className="secondary">Save</button>
-                            <button className="primary">Launch</button>
+                            <button className="primary"
+                                onClick={() => handleDeleteChapter(0)} // Change 0 to the chapter index you want to delete
+                                disabled={Page.chapters.length === 0}
+                            >Launch</button>
                         </div>
+
 
                         {Page.chapters.map((chapter, index) => (
                             <div className="chapter-container" key={index}>
@@ -590,29 +676,29 @@ function Chalisacontent() {
                                     <div className="chapter-icons">
                                         {/* Up and Down Buttons */}
                                         <div className="circle orange-circle">
-                                            <button className="edit">
+                                            <button className="icon-btn">
                                                 <img alt="" src="/icons/svg/up-down.png" />
                                             </button>
-                                            <button className="icon-btn"
-                                            >
-                                                <IoChevronDown className="icon orange" />
-                                            </button>
                                         </div>
-
                                         {/* Checkmark Button */}
                                         <div className="circle pink-circle">
                                             <button className="icon-btn"
                                                 onClick={() => toggleOriginMeaning(index)}>
-                                                <FaCheck className="icon pink" />
+                                                <img alt="" src="/icons/svg/arrow-down.png" />
                                             </button>
                                         </div>
                                     </div>
                                 </div>
-                                {/* Show/hide Origin and Meaning */}
-                                {openChapters[index] && (
+                                {/* Show/hide all Origins and Meanings */}
+                                {openChapters[index] && chapter.verses && chapter.verses.length > 0 && (
                                     <div className="origin-meaning-section">
-                                        <p><strong>Origin:</strong> {chapter.original || 'Sample origin text here'}</p>
-                                        <p><strong>Meaning:</strong> {chapter.meaning || 'Sample meaning text here'}</p>
+                                        {chapter.verses.map((verse, vIdx) => (
+                                            <div key={vIdx}>
+                                                <p><strong>Origin {vIdx + 1}:</strong> {verse.original || 'Sample origin text here'}</p>
+                                                <p><strong>Meaning {vIdx + 1}:</strong> {verse.meaning || 'Sample meaning text here'}</p>
+                                                <hr />
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>

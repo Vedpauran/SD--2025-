@@ -312,8 +312,20 @@ const registerUser = asyncHandler(async (req, res) => {
     ? `${username.toLowerCase()}-${randomNumber}`
     : username;
 
-  const userCount = await User.countDocuments();
-  const userId = `SD${userCount + 1}`;
+  // fetch only userIds
+  const users = await User.find({}, { userId: 1, _id: 0 });
+
+  const usedIds = new Set(
+    users.map((user) => parseInt(user.userId.replace("SD", ""), 10))
+  );
+
+  let userIdNumber = 1;
+
+  while (usedIds.has(userIdNumber)) {
+    userIdNumber++;
+  }
+
+  const userId = `SD${userIdNumber}`;
 
   try {
     const user = await User.create({

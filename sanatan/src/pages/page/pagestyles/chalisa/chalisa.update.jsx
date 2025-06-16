@@ -186,14 +186,25 @@ function Chalisacontentupdate() {
     };
 
     // ✅ Add a new chapter
+    // const handleAddChapter = () => {
+    //     setPage((prevPage) => ({
+    //         ...prevPage,
+    //         chapters: Array.isArray(prevPage.chapters)
+    //             ? [...prevPage.chapters, { tabletitle: "", verses: [{ original: "", meaning: "" }] }]
+    //             : [{ tabletitle: "", verses: [{ original: "", meaning: "" }] }],
+    //     }));
+    // };
+
     const handleAddChapter = () => {
         setPage((prevPage) => ({
             ...prevPage,
-            chapters: Array.isArray(prevPage.chapters)
-                ? [...prevPage.chapters, { tabletitle: "", verses: [{ original: "", meaning: "" }] }]
-                : [{ tabletitle: "", verses: [{ original: "", meaning: "" }] }],
+            chapters: [
+                ...(Array.isArray(prevPage.chapters) ? prevPage.chapters : []),
+                { tabletitle: "", verses: [{ original: "", meaning: "" }] }
+            ]
         }));
     };
+
 
     // ✅ Handle chapter changes
     const handleChapterChange = (index, field, value) => {
@@ -243,12 +254,20 @@ function Chalisacontentupdate() {
     };
 
     const handleAddVerse = (chapterIndex) => {
-        setPage((prevPage) => {
-            const updatedChapters = [...prevPage.chapters];
-            updatedChapters[chapterIndex].verses.push({ original: "", meaning: "" });
+        setPage(prevPage => {
+            const updatedChapters = prevPage.chapters.map((chapter, index) => {
+                if (index === chapterIndex) {
+                    return {
+                        ...chapter,
+                        verses: [...chapter.verses, { original: "", meaning: "" }]
+                    }
+                }
+                return chapter;
+            });
             return { ...prevPage, chapters: updatedChapters };
         });
     };
+
 
     // Remove a verse from a chapter
     const handleDeleteVerse = async (chapterIndex, verseIndex) => {
@@ -298,21 +317,26 @@ function Chalisacontentupdate() {
     };
 
     useEffect(() => {
-        if (!Array.isArray(Page.chapters)) {
+        if (!Array.isArray(Page.chapters) || Page.chapters.length === 0) {
             setPage((prevPage) => ({
                 ...prevPage,
                 chapters: [{ tabletitle: "", verses: [{ original: "", meaning: "" }] }],
             }));
         } else {
-            // Fix any chapters that are missing the 'verses' array
-            setPage((prevPage) => ({
-                ...prevPage,
-                chapters: prevPage.chapters.map(ch =>
-                    ch.verses ? ch : { ...ch, verses: [{ original: "", meaning: "" }] }
-                ),
-            }));
+            const updatedChapters = Page.chapters.map(ch =>
+                ch.verses ? ch : { ...ch, verses: [{ original: "", meaning: "" }] }
+            );
+
+            // Only update if chapters were actually missing verses
+            if (JSON.stringify(updatedChapters) !== JSON.stringify(Page.chapters)) {
+                setPage((prevPage) => ({
+                    ...prevPage,
+                    chapters: updatedChapters
+                }));
+            }
         }
     }, [Page.chapters]);
+
 
 
     return (
@@ -545,7 +569,7 @@ function Chalisacontentupdate() {
                                                 className="secondary"
                                                 onClick={() => handleAddVerse(chapterIndex)}
                                             >
-                                                Add More Chapter
+                                                Add More Verse
                                             </button>
                                             <button
                                                 className="secondary"
@@ -562,9 +586,12 @@ function Chalisacontentupdate() {
                         ))}
 
                         <div className="button-group center">
-                            <button className="secondary" onClick={handleAddChapter}>Add More Verse</button>
+                            <button className="secondary" onClick={handleAddChapter}>Add More Chapter</button>
                             <button className="secondary">Save</button>
-                            <button className="primary">Launch</button>
+                            <button className="primary"
+                                onClick={() => handleDeleteChapter(0)} // Change 0 to the chapter index you want to delete
+                                disabled={Page.chapters.length === 0}
+                            >Launch</button>
                         </div>
 
 
@@ -584,9 +611,7 @@ function Chalisacontentupdate() {
                                             <button className="icon-btn">
                                                 <img alt="" src="/icons/svg/up-down.png" />
                                             </button>
-
                                         </div>
-
                                         {/* Checkmark Button */}
                                         <div className="circle pink-circle">
                                             <button className="icon-btn"
@@ -596,16 +621,20 @@ function Chalisacontentupdate() {
                                         </div>
                                     </div>
                                 </div>
-                                {/* Show/hide Origin and Meaning */}
-                                {openChapters[index] && (
+                                {/* Show/hide all Origins and Meanings */}
+                                {openChapters[index] && chapter.verses && chapter.verses.length > 0 && (
                                     <div className="origin-meaning-section">
-                                        <p><strong>Origin:</strong> {chapter.original || 'Sample origin text here'}</p>
-                                        <p><strong>Meaning:</strong> {chapter.meaning || 'Sample meaning text here'}</p>
+                                        {chapter.verses.map((verse, vIdx) => (
+                                            <div key={vIdx}>
+                                                <p><strong>Origin {vIdx + 1}:</strong> {verse.original || 'Sample origin text here'}</p>
+                                                <p><strong>Meaning {vIdx + 1}:</strong> {verse.meaning || 'Sample meaning text here'}</p>
+                                                <hr />
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
                         ))}
-
                     </>
 
                 )}
